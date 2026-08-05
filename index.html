@@ -201,10 +201,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
-    <div class="muted" style="margin-top:14px;font-size:11.5px;line-height:1.6;">
-      Login pertama kali: username <code class="mono">admin</code>, password <code class="mono">admin123</code> (segera ganti setelah masuk).
     </div>
-  </div>
 </div>
 
 <div class="nav" id="navBar">
@@ -298,6 +295,7 @@
     <div class="card">
       <h3><span class="sw"></span>Histori Harga</h3>
       <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Harga Beli</th><th>Harga Jual</th><th>Update</th></tr></thead><tbody id="tblHargaHistori"></tbody></table>
+      <div id="hargaHistoriPager" style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12.5px;color:#8b93b3;"></div>
     </div>
   </section>
 
@@ -430,7 +428,7 @@
 
 <script>
 /* ================= STATE ================= */
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu5r45XRcEfSv6OA_1EBVtqH5LRJiR9rQHEUMoEbSaUv7xmeluVk588gcQV0ywxCDu/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhqKg4U3mBiHj4-8WC8iQU6NjYm2a88F7a4f_ZoikGwOV2NILRaaM4ti1_lnPycMIH/exec';
 let SCRIPT_URL = '';
 let currentUser = null; // {id, nama, username, role}
 let DB = { merek: [], ukuran: [], harga: [], pembelian: [], transaksi: [], users: [] };
@@ -805,14 +803,34 @@ document.getElementById('btnSaveHargaAll').onclick = async ()=>{
   catch(e){ toast(e.message,false); }
 };
 
+const HISTORI_PAGE_SIZE = 10;
+let hargaHistoriPage = 1;
+
 function renderHargaHistori(){
-  const rows = [...DB.harga].sort((a,b)=> (a.updated_at<b.updated_at?1:-1)).slice(0,30);
+  const all = [...DB.harga].sort((a,b)=> (a.updated_at<b.updated_at?1:-1));
+  const totalPages = Math.max(1, Math.ceil(all.length / HISTORI_PAGE_SIZE));
+  if(hargaHistoriPage > totalPages) hargaHistoriPage = totalPages;
+  if(hargaHistoriPage < 1) hargaHistoriPage = 1;
+  const start = (hargaHistoriPage-1) * HISTORI_PAGE_SIZE;
+  const rows = all.slice(start, start + HISTORI_PAGE_SIZE);
+
   document.getElementById('tblHargaHistori').innerHTML = rows.map(h=>`
     <tr><td>${h.tanggal}</td><td><span class="tag-brand tag-${slug(h.merek)}">${h.merek}</span></td><td>${h.berat_gr} gr</td>
     <td class="mono">${rupiah(h.harga_beli)}</td><td class="mono">${rupiah(h.harga_jual)}</td>
     <td class="muted">${(h.updated_at||'').toString().slice(0,16).replace('T',' ')}</td></tr>`).join('')
     || `<tr><td colspan=6 class="empty">Belum ada histori harga</td></tr>`;
+
+  const pager = document.getElementById('hargaHistoriPager');
+  if(all.length <= HISTORI_PAGE_SIZE){ pager.innerHTML = ''; return; }
+  pager.innerHTML = `
+    <span>Menampilkan ${start+1}–${Math.min(start+HISTORI_PAGE_SIZE, all.length)} dari ${all.length} data</span>
+    <span style="display:flex;gap:8px;align-items:center;">
+      <button class="btn small secondary" ${hargaHistoriPage<=1?'disabled':''} onclick="gotoHistoriPage(${hargaHistoriPage-1})">‹ Sebelumnya</button>
+      <span class="mono">Hal ${hargaHistoriPage}/${totalPages}</span>
+      <button class="btn small secondary" ${hargaHistoriPage>=totalPages?'disabled':''} onclick="gotoHistoriPage(${hargaHistoriPage+1})">Berikutnya ›</button>
+    </span>`;
 }
+function gotoHistoriPage(p){ hargaHistoriPage = p; renderHargaHistori(); }
 
 /* ================= DOWNLOAD GAMBAR DAFTAR HARGA ================= */
 function fmtRupiahPlain(n){ return Math.round(n||0).toLocaleString('id-ID'); }
