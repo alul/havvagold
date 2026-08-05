@@ -3,223 +3,1171 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kalkulator Harga Emas</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<title>Havva Gold — Aplikasi Penjualan Emas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';"></script>
 <style>
   :root{
-    --hijau-dp:#0F3D26; --hijau:#155C36; --hijau-lt:#E9F3EC;
-    --emas:#C9A24B; --emas-dp:#96762D; --emas-lt:#FBF4E2;
-    --ink:#1B211D; --sub:#5B6560; --line:#E1DED4; --paper:#FAF9F5;
-    --danger:#B14435;
+    --bg:#0a0d18; --bg2:#0f1426; --panel:#12172b; --panel2:#161c34;
+    --gold:#d4af37; --gold-light:#f4d888; --gold-deep:#a97e1f;
+    --cream:#faf6ec; --cream-dim:#e9e2cf;
+    --ink:#171208; --line:#26304f;
+    --green:#3fbf7f; --red:#e2596b; --blue:#5b8def; --purple:#9b7bd8;
+    --radius:14px;
   }
   *{box-sizing:border-box;}
-  body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--paper);color:var(--ink);}
-  .wrap{max-width:1180px;margin:0 auto;padding:28px 18px 60px;}
-  h1{font-size:1.4rem;margin:0 0 4px;letter-spacing:-0.01em;}
-  .lede{color:var(--sub);font-size:.92rem;margin:0 0 24px;}
-  .grid{display:grid;grid-template-columns:1.15fr 1fr;gap:22px;align-items:start;}
-  @media (max-width:920px){.grid{grid-template-columns:1fr;}}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 10% -10%, #1a2140 0%, transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, #201a33 0%, transparent 55%),
+      var(--bg);
+    color:var(--cream); font-family:'Inter',sans-serif; min-height:100vh;}
+  h1,h2,h3,.serif{font-family:'Cormorant Garamond',serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  ::selection{background:var(--gold); color:#171208;}
 
-  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;}
-  .panel h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin:0 0 14px;font-weight:700;}
-  .row-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px;}
-  .field label{display:block;font-size:.74rem;color:var(--sub);margin-bottom:4px;}
-  .field input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.9rem;font-variant-numeric:tabular-nums;}
-  .field input:focus{outline:none;border-color:var(--hijau);box-shadow:0 0 0 3px var(--hijau-lt);}
-  .toggle{display:flex;align-items:center;gap:8px;font-size:.82rem;color:var(--ink);margin-top:4px;}
+  /* ---------- Top bar ---------- */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;
+    border-bottom:1px solid var(--line); background:rgba(10,13,24,.85); backdrop-filter:blur(6px);
+    position:sticky; top:0; z-index:50;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .logo{width:46px;height:46px;position:relative;flex:none;}
+  .logo svg{width:100%;height:100%;}
+  .brand-text .name{font-family:'Cormorant Garamond',serif; font-weight:700; font-size:22px; letter-spacing:.5px;
+    background:linear-gradient(180deg,var(--gold-light),var(--gold-deep)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+  .brand-text .tag{font-size:10px; letter-spacing:2.5px; color:#8b93b3; text-transform:uppercase;}
+  .userbox{display:flex;align-items:center;gap:10px;font-size:13px;color:#a9b0cc;}
+  .userbox select{background:var(--panel2);color:var(--cream);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--green); box-shadow:0 0 8px var(--green);}
+  .dot.off{background:var(--red); box-shadow:0 0 8px var(--red);}
 
-  table.editor{width:100%;border-collapse:collapse;font-size:.85rem;}
-  table.editor th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);padding:6px 6px;border-bottom:1px solid var(--line);}
-  table.editor td{padding:5px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
-  table.editor td.gr{font-weight:700;}
-  table.editor input{width:100%;padding:6px 7px;border:1px solid var(--line);border-radius:6px;font-size:.83rem;font-variant-numeric:tabular-nums;}
-  table.editor input:focus{outline:none;border-color:var(--hijau);}
-  .computed{font-variant-numeric:tabular-nums;color:var(--hijau);font-weight:600;}
-  .computed.beli{color:var(--emas-dp);}
+  /* ---------- Nav ---------- */
+  .nav{display:flex;gap:4px; padding:10px 24px; overflow-x:auto; border-bottom:1px solid var(--line);}
+  .nav button{background:none;border:none;color:#9aa2c0;padding:9px 16px;border-radius:10px;font-size:13.5px;
+    font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s;}
+  .nav button:hover{color:var(--cream); background:var(--panel);}
+  .nav button.active{color:#171208; background:linear-gradient(135deg,var(--gold-light),var(--gold));}
 
-  .btn{cursor:pointer;border:none;border-radius:9px;padding:11px 18px;font-size:.88rem;font-weight:600;}
-  .btn-primary{background:var(--hijau);color:#fff;}
-  .btn-primary:hover{background:var(--hijau-dp);}
-  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--ink);}
-  .btn-row{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  main{padding:24px 28px 60px; max-width:1440px; margin:0 auto;}
+  .hidden{display:none !important;}
 
-  /* ===== EXPORT CARD (matches reference photo) ===== */
-  .card-shell{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;}
-  #export-card{width:480px;max-width:100%;background:#fff;border:2px solid var(--hijau-dp);border-radius:2px;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;}
-  .ec-header{background:var(--hijau-dp);color:#fff;text-align:center;font-weight:800;font-size:1.15rem;letter-spacing:.02em;padding:10px 8px;}
-  .ec-body{display:flex;gap:0;border-bottom:2px solid var(--hijau-dp);}
-  .ec-bar{width:34%;padding:14px 10px;display:flex;align-items:center;justify-content:center;}
-  .bar-visual{width:100%;aspect-ratio:2/3;border-radius:6px;background:linear-gradient(135deg,#F3D888,#C9A24B 45%,#8E6E28);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35), 0 2px 6px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#3B2C0C;text-align:center;padding:8px;}
-  .bar-visual .lm{font-weight:800;font-size:.68rem;letter-spacing:.12em;}
-  .bar-visual .fine{font-size:.6rem;margin-top:10px;font-weight:700;}
-  .bar-visual .num{font-size:1.05rem;font-weight:800;margin-top:2px;}
-  .bar-visual .g{font-size:.6rem;margin-top:10px;letter-spacing:.05em;}
-  .ec-table{flex:1;border-left:2px solid var(--hijau-dp);}
-  .ec-table table{width:100%;border-collapse:collapse;font-size:.86rem;}
-  .ec-table th{background:var(--hijau-lt);color:var(--hijau-dp);font-weight:800;padding:6px 4px;border-bottom:2px solid var(--hijau-dp);}
-  .ec-table th:first-child{border-right:1px solid var(--hijau-dp);}
-  .ec-table td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}
-  .ec-table td:first-child{text-align:center;border-right:1px solid var(--line);font-weight:700;}
-  .ec-table tr:last-child td{border-bottom:none;}
-  .ec-footer-brand{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--line);}
-  .brand-mark{font-weight:800;letter-spacing:.03em;color:var(--hijau-dp);font-size:1.05rem;}
-  .brand-mark span{color:var(--emas-dp);}
-  .dot{width:14px;height:14px;border-radius:50%;background:#D3453A;}
-  .ec-tag{text-align:center;font-weight:800;font-size:.82rem;padding:9px 8px;color:var(--ink);}
-  .ec-buy{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:0;}
-  .ec-buy caption{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--sub);padding:8px 12px 4px;}
-  .ec-buy td{padding:4px 12px;border-bottom:1px solid var(--line);}
-  .ec-buy td:last-child{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--emas-dp);}
+  /* ---------- Cards / grid ---------- */
+  .grid{display:grid; gap:16px;}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr);}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-2{grid-template-columns:1fr 1fr;}
+  @media(max-width:1000px){.grid.cols-4{grid-template-columns:repeat(2,1fr);} .grid.cols-2,.grid.cols-3{grid-template-columns:1fr;}}
 
-  .note{font-size:.72rem;color:var(--sub);margin-top:10px;line-height:1.5;}
+  .card{background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px;}
+  .card h3{margin:0 0 14px; font-size:16px; font-weight:700; letter-spacing:.3px; display:flex;align-items:center;gap:8px;}
+  .card h3 .sw{width:5px;height:16px;border-radius:3px;background:linear-gradient(var(--gold-light),var(--gold));}
+
+  .kpi .label{font-size:11.5px; text-transform:uppercase; letter-spacing:1.2px; color:#8b93b3;}
+  .kpi .value{font-family:'Cormorant Garamond',serif; font-size:30px; font-weight:700; color:var(--cream); margin-top:6px;}
+  .kpi .delta{font-size:12px; margin-top:6px; font-weight:600;}
+  .kpi .delta.up{color:var(--green);} .kpi .delta.down{color:var(--red);}
+
+  table{width:100%; border-collapse:collapse; font-size:13px;}
+  .card table{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .tbl-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .tbl-wrap table{min-width:760px;}
+  th{text-align:left; color:#8b93b3; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.6px;
+    padding:8px 10px; border-bottom:1px solid var(--line);}
+  td{padding:9px 10px; border-bottom:1px solid #1c2340; color:var(--cream-dim);}
+  tr:hover td{background:rgba(212,175,55,.04);}
+  .tag-brand{padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+  .tag-Antam{background:#3a2c12;color:#f0b429;} .tag-Emasku{background:#1b2b46;color:#7ba7ff;}
+  .tag-Galeri24{background:#2a1638;color:#c99bf0;} .tag-Galeri-24{background:#2a1638;color:#c99bf0;}
+  .tag-MiniGold{background:#123324;color:#5fd9a0;}
+
+  input,select,button.btn{font-family:inherit; font-size:13.5px;}
+  input,select{background:var(--bg2); color:var(--cream); border:1px solid var(--line); border-radius:9px; padding:9px 11px; width:100%;}
+  input:focus,select:focus{outline:none; border-color:var(--gold);}
+  label{font-size:11.5px; color:#8b93b3; text-transform:uppercase; letter-spacing:.6px; display:block; margin-bottom:5px;}
+  .field{margin-bottom:12px;}
+  .btn{background:linear-gradient(135deg,var(--gold-light),var(--gold)); color:#1a1305; border:none;
+    padding:10px 18px; border-radius:10px; font-weight:700; cursor:pointer; letter-spacing:.2px;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn.secondary{background:var(--panel2); color:var(--cream); border:1px solid var(--line);}
+  .btn.small{padding:6px 12px; font-size:12px; border-radius:8px;}
+  .btn:disabled{opacity:.5; cursor:not-allowed;}
+
+  .badge-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#8b93b3;padding:8px 12px;border:1px solid var(--line);border-radius:10px;}
+  .empty{color:#6b7290; font-size:13px; padding:20px; text-align:center;}
+  .toast{position:fixed; bottom:24px; right:24px; background:var(--panel2); border:1px solid var(--gold); color:var(--cream);
+    padding:12px 18px; border-radius:10px; font-size:13px; z-index:200; box-shadow:0 10px 30px rgba(0,0,0,.5); max-width:340px;}
+  .setup-box{background:var(--panel); border:1px dashed var(--gold-deep); border-radius:var(--radius); padding:22px; line-height:1.7; font-size:13.5px; color:#c7cde3;}
+  .setup-box code{background:#0a0d18; padding:2px 6px; border-radius:5px; color:var(--gold-light); font-family:'JetBrains Mono',monospace; font-size:12px;}
+  .setup-box ol{padding-left:20px;}
+  .pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .pill{padding:5px 12px;border-radius:20px;background:var(--bg2);border:1px solid var(--line);font-size:12px;color:#a9b0cc;}
+  .split{display:flex; gap:16px; flex-wrap:wrap;}
+  .split > div{flex:1; min-width:220px;}
+  .chart-wrap{height:220px;}
+  .row-actions{display:flex;gap:6px;}
+  .muted{color:#6b7290;}
+
+  /* ---------- Responsive (tablet & phone) ---------- */
+  @media(max-width:900px){
+    .topbar{padding:12px 16px; flex-wrap:wrap; gap:10px;}
+    .brand-text .name{font-size:19px;}
+    .nav{padding:8px 12px;}
+    .nav button{padding:8px 12px; font-size:12.5px;}
+    main{padding:16px 14px 50px;}
+    .card{padding:15px 14px;}
+    .kpi .value{font-size:24px;}
+    .grid{gap:12px;}
+    .grid.cols-4{grid-template-columns:repeat(2,1fr);}
+    .userbox{font-size:12px; gap:6px;}
+    .userbox select{font-size:12px; padding:5px 8px;}
+    #loginOverlay .card{width:92vw !important; padding:20px 16px;}
+  }
+  @media(max-width:600px){
+    .topbar{justify-content:space-between;}
+    .brand{gap:10px;}
+    .logo{width:38px;height:38px;}
+    .brand-text .name{font-size:17px;}
+    .brand-text .tag{font-size:9px;}
+    .grid.cols-4{grid-template-columns:1fr;}
+    .grid.cols-3{grid-template-columns:1fr;}
+    .split > div{min-width:100%;}
+    .chart-wrap{height:190px;}
+    #userInfo{display:none !important;}
+    .userbox .dot{display:none;}
+    #connLabel{display:none;}
+  }
+  @media(max-width:420px){
+    h1,.name{font-size:16px !important;}
+    .card h3{font-size:14.5px;}
+    .btn{padding:9px 14px; font-size:12.5px;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Kalkulator &amp; Kartu Harga Emas</h1>
-  <p class="lede">Masukkan harga dasar produsen per denominasi — harga jual dan harga beli terhitung otomatis, lalu unduh kartu harga sebagai gambar.</p>
 
-  <div class="grid">
-    <!-- LEFT: EDITOR -->
-    <div class="panel">
-      <h2>Pengaturan Formula</h2>
-      <div class="row-settings">
-        <div class="field">
-          <label>Tanggal (tampil di kartu)</label>
-          <input id="tanggal" type="text" value="4-Aug-26">
-        </div>
-        <div class="field">
-          <label>Margin Jual Otomatis (%)</label>
-          <input id="marginJualPct" type="number" step="0.01" value="2.58">
-        </div>
-        <div class="field">
-          <label>Margin Beli Otomatis (Rp, dikurangi dari dasar)</label>
-          <input id="marginBeliFlat" type="number" step="1000" value="25000">
-        </div>
-        <div class="field">
-          <label>Pembulatan Harga Jual/Beli</label>
-          <input id="pembulatan" type="number" step="1000" value="1000">
-        </div>
-      </div>
-      <div class="toggle">
-        <input id="tampilBeli" type="checkbox">
-        <label for="tampilBeli">Sertakan tabel harga beli (buyback) di kartu unduhan</label>
-      </div>
-
-      <h2 style="margin-top:20px;">Harga Dasar Produsen per Gram</h2>
-      <table class="editor">
-        <thead><tr><th>Gr</th><th>Harga Dasar</th><th>Harga Jual</th><th>Harga Beli</th></tr></thead>
-        <tbody id="editor-body"></tbody>
-      </table>
-
-      <div class="btn-row">
-        <button class="btn btn-primary" onclick="unduhGambar()">Unduh Gambar Kartu Harga</button>
-        <button class="btn btn-ghost" onclick="hitungUlang()">Hitung Ulang</button>
-      </div>
-      <p class="note">Harga jual = harga dasar produsen × (1 + margin jual%), dibulatkan ke kelipatan pembulatan.<br>
-      Harga beli (buyback) = harga dasar produsen − margin beli (Rp), dibulatkan ke kelipatan pembulatan.</p>
+<div class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 100 100">
+        <defs>
+          <linearGradient id="gg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#f4d888"/><stop offset="55%" stop-color="#d4af37"/><stop offset="100%" stop-color="#8a6415"/>
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="47" fill="#0d1120" stroke="url(#gg)" stroke-width="2.5"/>
+        <circle cx="50" cy="50" r="39" fill="none" stroke="url(#gg)" stroke-width="1"/>
+        <path d="M50 16 L58 32 L42 32 Z" fill="url(#gg)"/>
+        <circle cx="50" cy="14" r="3.4" fill="url(#gg)"/>
+        <text x="50" y="47" font-family="Cormorant Garamond, serif" font-weight="700" font-size="26" fill="url(#gg)" text-anchor="middle">HG</text>
+        <text x="50" y="66" font-family="Inter, sans-serif" font-weight="700" font-size="8" letter-spacing="2" fill="url(#gg)" text-anchor="middle">HAVVA</text>
+        <text x="50" y="76" font-family="Inter, sans-serif" font-weight="600" font-size="6.5" letter-spacing="3" fill="#f4d888" text-anchor="middle">GOLD</text>
+      </svg>
     </div>
+    <div class="brand-text">
+      <div class="name">Havva Gold</div>
+      <div class="tag">Toko Emas Terpercaya</div>
+    </div>
+  </div>
+  <div class="userbox">
+    <span id="connDot" class="dot off"></span>
+    <span id="connLabel">Belum terhubung</span>
+    <span id="userInfo" class="hidden" style="margin-left:8px;padding:6px 12px;border:1px solid var(--line);border-radius:20px;">
+      <b id="userNama" style="color:var(--gold-light)"></b> · <span id="userRole" class="mono"></span>
+    </span>
+    <button class="btn secondary small hidden" id="btnLogout" style="margin-left:4px;">Keluar</button>
+  </div>
+</div>
 
-    <!-- RIGHT: PREVIEW / EXPORT CARD -->
-    <div class="card-shell">
-      <h2 style="font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--sub);margin:0 0 14px;font-weight:700;">Pratinjau Kartu</h2>
-      <div id="export-card">
-        <div class="ec-header" id="ec-tanggal">4-Aug-26</div>
-        <div class="ec-body">
-          <div class="ec-bar">
-            <div class="bar-visual">
-              <div class="lm">LM</div>
-              <div class="fine">FINE GOLD<br>999.9</div>
-              <div class="num">100 g</div>
-              <div class="g">CERTIFIED</div>
-            </div>
-          </div>
-          <div class="ec-table">
-            <table>
-              <thead><tr><th>Gr</th><th>Harga</th></tr></thead>
-              <tbody id="ec-jual-body"></tbody>
-            </table>
-          </div>
-        </div>
-        <table class="ec-buy" id="ec-beli-wrap" style="display:none;">
-          <caption>Harga Beli (Buyback)</caption>
-          <tbody id="ec-beli-body"></tbody>
-        </table>
-        <div class="ec-footer-brand">
-          <div class="brand-mark">ant<span>am</span></div>
-          <div class="dot"></div>
-        </div>
-        <div class="ec-tag">Kami menerima buyback dengan harga terbaik</div>
+<!-- ================= LOGIN OVERLAY ================= -->
+<div id="loginOverlay" style="position:fixed;inset:0;background:radial-gradient(1200px 600px at 10% -10%, #1a2140 0%, transparent 60%), radial-gradient(1000px 500px at 100% 0%, #201a33 0%, transparent 55%), var(--bg);z-index:500;display:flex;align-items:center;justify-content:center;">
+  <div class="card" style="width:340px;">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div class="logo" style="margin:0 auto 10px;width:56px;height:56px;">
+        <svg viewBox="0 0 100 100">
+          <defs><linearGradient id="gg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f4d888"/><stop offset="55%" stop-color="#d4af37"/><stop offset="100%" stop-color="#8a6415"/></linearGradient></defs>
+          <circle cx="50" cy="50" r="47" fill="#0d1120" stroke="url(#gg2)" stroke-width="2.5"/>
+          <circle cx="50" cy="50" r="39" fill="none" stroke="url(#gg2)" stroke-width="1"/>
+          <path d="M50 16 L58 32 L42 32 Z" fill="url(#gg2)"/><circle cx="50" cy="14" r="3.4" fill="url(#gg2)"/>
+          <text x="50" y="47" font-family="Cormorant Garamond, serif" font-weight="700" font-size="26" fill="url(#gg2)" text-anchor="middle">HG</text>
+          <text x="50" y="66" font-family="Inter, sans-serif" font-weight="700" font-size="8" letter-spacing="2" fill="url(#gg2)" text-anchor="middle">HAVVA</text>
+          <text x="50" y="76" font-family="Inter, sans-serif" font-weight="600" font-size="6.5" letter-spacing="3" fill="#f4d888" text-anchor="middle">GOLD</text>
+        </svg>
       </div>
+      <div class="name serif" style="font-size:22px;font-weight:700;background:linear-gradient(180deg,var(--gold-light),var(--gold-deep));-webkit-background-clip:text;background-clip:text;color:transparent;">Havva Gold</div>
+      <div class="tag" style="font-size:10px;letter-spacing:2.5px;color:#8b93b3;">MASUK KE AKUN</div>
+    </div>
+    <div class="field hidden"><label>URL Database (Apps Script)</label><input id="loginScriptUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+    <div class="field"><label>Username</label><input id="loginUsername" placeholder="admin" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+    <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
+    <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
+    <div class="muted" style="margin-top:14px;font-size:11.5px;line-height:1.6;">
+      Login pertama kali: username <code class="mono">admin</code>, password <code class="mono">admin123</code> (segera ganti setelah masuk).
     </div>
   </div>
 </div>
 
+<div class="nav" id="navBar">
+  <button data-tab="dashboard" class="active">Dashboard</button>
+  <button data-tab="harga">Harga Harian</button>
+  <button data-tab="transaksi">Transaksi Penjualan</button>
+  <button data-tab="pembelian">Pembelian / Stok Masuk</button>
+  <button data-tab="stok">Stok</button>
+  <button data-tab="master">Merek & Ukuran</button>
+  <button data-tab="pengguna">Pengguna</button>
+  <button data-tab="pengaturan">Pengaturan</button>
+</div>
+
+<main>
+
+  <!-- ================= DASHBOARD ================= -->
+  <section id="tab-dashboard">
+    <div class="grid cols-4" style="margin-bottom:16px;">
+      <div class="card kpi"><div class="label">Total Penjualan Hari Ini</div><div class="value" id="kpiPenjualan">Rp 0</div><div class="delta up" id="kpiPenjualanDelta"></div></div>
+      <div class="card kpi"><div class="label">Total Keuntungan</div><div class="value" id="kpiUntung">Rp 0</div><div class="delta up" id="kpiUntungDelta"></div></div>
+      <div class="card kpi"><div class="label">Transaksi Hari Ini</div><div class="value" id="kpiTrx">0</div><div class="delta up" id="kpiTrxDelta"></div></div>
+      <div class="card kpi"><div class="label">Total Stok</div><div class="value" id="kpiStok">0 gr</div><div class="delta up" id="kpiStokDelta">Update real-time</div></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-bottom:16px;">
+      <div class="card"><h3><span class="sw"></span>Grafik Penjualan (Omset, 7 hari)</h3><div class="chart-wrap"><canvas id="chartOmset"></canvas></div></div>
+      <div class="card"><h3><span class="sw"></span>Grafik Keuntungan (Laba, 7 hari)</h3><div class="chart-wrap"><canvas id="chartLaba"></canvas></div></div>
+    </div>
+
+    <div class="grid cols-2" style="margin-bottom:16px;">
+      <div class="card"><h3><span class="sw"></span>Penjualan per Merek (Hari Ini)</h3><div class="chart-wrap"><canvas id="chartMerek"></canvas></div></div>
+      <div class="card"><h3><span class="sw"></span>Penjualan per Ukuran (Hari Ini)</h3><div class="chart-wrap"><canvas id="chartUkuran"></canvas></div></div>
+    </div>
+
+    <div class="grid cols-2">
+      <div class="card"><h3><span class="sw"></span>Top Produk Terlaris (Hari Ini)</h3>
+        <table><thead><tr><th>Merek</th><th>Berat</th><th>Terjual (gr)</th><th>Omset</th></tr></thead><tbody id="tblTop"></tbody></table>
+      </div>
+      <div class="card"><h3><span class="sw"></span>Ringkasan Stok per Merek</h3>
+        <table><thead><tr><th>Merek</th><th>Stok (gr)</th><th>Nilai Stok</th></tr></thead><tbody id="tblStokMerek"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= HARGA HARIAN ================= -->
+  <section id="tab-harga" class="hidden">
+    <div class="card" style="margin-bottom:16px;">
+      <h3><span class="sw"></span>Input Harga per Gram dari Produsen (Buat Tabel Otomatis)</h3>
+      <p class="muted" style="margin:-6px 0 14px;font-size:12.5px;">Masukkan harga dari produsen/pemasok per gram. <b style="color:var(--gold-light)">Margin Buyback</b> otomatis ditambahkan dalam Rupiah tetap per gram, <b style="color:var(--gold-light)">Margin Jual</b> otomatis dihitung sebagai persentase dari harga produsen. Harga final akan diterapkan ke semua ukuran (0.5gr–50gr) di tabel bawah.</p>
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Merek</th><th>Buyback dari Produsen/gr</th><th>Margin Buyback (Rp/gr)</th><th>= Buyback Final/gr</th><th>Jual dari Produsen/gr</th><th>Margin Jual (%)</th><th>= Jual Final/gr</th><th></th></tr></thead>
+        <tbody id="hargaPerGramGrid"></tbody>
+      </table>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap;">
+        <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--cream-dim);">
+          <input type="checkbox" id="bulatkanHarga" checked style="width:auto;"> Bulatkan ke Rp1.000 terdekat
+        </label>
+        <button class="btn secondary small" id="btnGenerateSemua">⚡ Terapkan ke Semua Merek</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3><span class="sw"></span>Tabel Harga Harian per Ukuran</h3>
+      <div class="split">
+        <div class="field"><label>Tanggal</label><input type="date" id="hargaTanggal"></div>
+      </div>
+      <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Merek</th><th>Berat</th><th>Buyback Produsen</th><th>Margin Buyback</th><th>Harga Buyback</th><th>Jual Produsen</th><th>Margin Jual</th><th>Harga Jual</th></tr></thead>
+        <tbody id="hargaGrid"></tbody>
+      </table>
+      </div>
+      <div style="margin-top:12px;"><button class="btn" id="btnSaveHargaAll">Simpan Semua Harga</button></div>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3><span class="sw"></span>📸 Download Gambar Daftar Harga</h3>
+      <p class="muted" style="margin:-6px 0 14px;font-size:12.5px;">Buat gambar daftar harga per gram (seperti broadcast harga harian) untuk dibagikan ke WhatsApp/media sosial.</p>
+      <div class="grid cols-3">
+        <div class="field"><label>Merek</label><select id="imgMerek"></select></div>
+        <div class="field"><label>Jenis Harga</label>
+          <select id="imgTipe">
+            <option value="jual">Harga Jual</option>
+            <option value="beli">Harga Buyback (Beli)</option>
+          </select>
+        </div>
+        <div class="field" style="display:flex;align-items:end;"><button class="btn" id="btnDownloadImg" style="width:100%;">⬇ Download Gambar</button></div>
+      </div>
+      <canvas id="priceImgCanvas" class="hidden"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="sw"></span>Histori Harga</h3>
+      <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Harga Beli</th><th>Harga Jual</th><th>Update</th></tr></thead><tbody id="tblHargaHistori"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ================= TRANSAKSI ================= -->
+  <section id="tab-transaksi" class="hidden">
+    <div class="grid cols-3" style="align-items:start;">
+      <div class="card" style="grid-column:span 1;">
+        <h3><span class="sw"></span>Transaksi Penjualan Baru</h3>
+        <div class="field"><label>Tanggal</label><input type="date" id="trxTanggal"></div>
+        <div class="field"><label>Merek</label><select id="trxMerek"></select></div>
+        <div class="field"><label>Berat (gr)</label><select id="trxBerat"></select></div>
+        <div class="field"><label>Harga Jual / gr (Rp)</label><input type="number" id="trxHarga" placeholder="Otomatis dari harga harian"></div>
+        <div class="field"><label>Jumlah (pcs)</label><input type="number" id="trxQty" value="1" min="1"></div>
+        <div class="field"><label>Diskon (Rp)</label><input type="number" id="trxDiskon" value="0"></div>
+        <div class="field"><label>Pajak (Rp)</label><input type="number" id="trxPajak" value="0"></div>
+        <div class="field"><label>Total Bayar</label><input type="text" id="trxTotal" disabled class="mono"></div>
+        <button class="btn" id="btnSaveTrx" style="width:100%;">Proses Transaksi</button>
+      </div>
+      <div class="card" style="grid-column:span 2;">
+        <h3><span class="sw"></span>Riwayat Transaksi</h3>
+        <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Qty</th><th>Total</th><th>Kasir</th></tr></thead><tbody id="tblTransaksi"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PEMBELIAN ================= -->
+  <section id="tab-pembelian" class="hidden">
+    <div class="grid cols-3" style="align-items:start;">
+      <div class="card" style="grid-column:span 1;">
+        <h3><span class="sw"></span>Pembelian / Stok Masuk</h3>
+        <div class="field"><label>Tanggal</label><input type="date" id="pmbTanggal"></div>
+        <div class="field"><label>Merek</label><select id="pmbMerek"></select></div>
+        <div class="field"><label>Berat (gr)</label><select id="pmbBerat"></select></div>
+        <div class="field"><label>Harga Beli / gr (Rp)</label><input type="number" id="pmbHarga"></div>
+        <div class="field"><label>Jumlah (pcs)</label><input type="number" id="pmbQty" value="1" min="1"></div>
+        <div class="field"><label>Total</label><input type="text" id="pmbTotal" disabled class="mono"></div>
+        <button class="btn" id="btnSavePmb" style="width:100%;">Simpan Pembelian</button>
+      </div>
+      <div class="card" style="grid-column:span 2;">
+        <h3><span class="sw"></span>Histori Penambahan Stok</h3>
+        <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Qty</th><th>Harga Beli</th><th>Total</th><th>User</th></tr></thead><tbody id="tblPembelian"></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= STOK ================= -->
+  <section id="tab-stok" class="hidden">
+    <div class="card">
+      <h3><span class="sw"></span>Stok & Rata-rata Harga Pembelian per Merek &amp; Berat</h3>
+      <table>
+        <thead><tr><th>Merek</th><th>Berat (gr)</th><th>Total Dibeli (gr)</th><th>Total Terjual (gr)</th><th>Sisa Stok (gr)</th><th>Rata² Harga Beli</th><th>Nilai Stok</th></tr></thead>
+        <tbody id="tblStokDetail"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ================= MASTER ================= -->
+  <section id="tab-master" class="hidden">
+    <div class="grid cols-2">
+      <div class="card">
+        <h3><span class="sw"></span>Manajemen Merek</h3>
+        <table><thead><tr><th>Nama</th><th>Status</th><th></th></tr></thead><tbody id="tblMerek"></tbody></table>
+        <div class="split" style="margin-top:14px;">
+          <div class="field"><label>Merek Baru</label><input id="newMerek" placeholder="Nama merek"></div>
+        </div>
+        <button class="btn small" id="btnAddMerek">Tambah Merek</button>
+      </div>
+      <div class="card">
+        <h3><span class="sw"></span>Manajemen Ukuran</h3>
+        <table><thead><tr><th>Berat (gr)</th><th>Status</th><th></th></tr></thead><tbody id="tblUkuran"></tbody></table>
+        <div class="split" style="margin-top:14px;">
+          <div class="field"><label>Ukuran Baru (gr)</label><input id="newUkuran" type="number" placeholder="cth 100"></div>
+        </div>
+        <button class="btn small" id="btnAddUkuran">Tambah Ukuran</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PENGGUNA ================= -->
+  <section id="tab-pengguna" class="hidden">
+    <div class="card">
+      <h3><span class="sw"></span>Manajemen Pengguna</h3>
+      <table><thead><tr><th>Nama</th><th>Username</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody id="tblUsers"></tbody></table>
+      <div class="grid cols-4" style="margin-top:14px;">
+        <div class="field"><label>Nama</label><input id="newUserNama" placeholder="Nama lengkap"></div>
+        <div class="field"><label>Username</label><input id="newUserUsername" placeholder="username"></div>
+        <div class="field"><label>Password</label><input id="newUserPassword" type="text" placeholder="password"></div>
+        <div class="field"><label>Role</label>
+          <select id="newUserRole">
+            <option value="Admin">Admin — akses penuh</option>
+            <option value="Kasir" selected>Kasir — transaksi & pembelian</option>
+            <option value="Viewer">Viewer — lihat saja</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn small" id="btnAddUser">Tambah Pengguna</button>
+    </div>
+  </section>
+
+  <!-- ================= PENGATURAN ================= -->
+  <section id="tab-pengaturan" class="hidden">
+    <div class="card" style="margin-bottom:16px;">
+      <h3><span class="sw"></span>Koneksi Database (Google Sheets via Apps Script)</h3>
+      <div class="field"><label>URL Web App (diakhiri /exec)</label><input id="scriptUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec"></div>
+      <div style="display:flex;gap:10px;">
+        <button class="btn" id="btnSaveUrl">Simpan &amp; Uji Koneksi</button>
+        <button class="btn secondary" id="btnRefreshAll">Muat Ulang Data</button>
+      </div>
+      <div id="connMsg" style="margin-top:12px;"></div>
+    </div>
+    <div class="setup-box">
+      <b style="color:var(--gold-light)">Cara memasang database gratis (Google Sheets + Apps Script):</b>
+      <ol>
+        <li>Buat Google Sheet baru bernama <code>Havva Gold DB</code>.</li>
+        <li>Buka <code>Extensions → Apps Script</code>, hapus isi bawaan, lalu tempel kode <b>Code.gs</b> yang sudah disediakan bersama aplikasi ini.</li>
+        <li>Jalankan fungsi <code>setupSheets</code> sekali dari toolbar Apps Script (izinkan akses saat diminta).</li>
+        <li>Klik <code>Deploy → New deployment → Web app</code>. Set <b>Execute as: Me</b> dan <b>Who has access: Anyone</b>.</li>
+        <li>Salin URL yang berakhiran <code>/exec</code>, tempel di kolom di atas, lalu klik "Simpan & Uji Koneksi".</li>
+      </ol>
+      <div class="pill-row">
+        <span class="pill">✓ 100% gratis</span>
+        <span class="pill">✓ Tanpa API key</span>
+        <span class="pill">✓ Data tersimpan di Google Drive kamu</span>
+        <span class="pill">✓ Bisa diakses siapa saja yang punya link aplikasi</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
 <script>
-const DENOM = [0.5,1,2,3,5,10,25,50,100];
-// Starting values back-derived so the default preview matches a typical price sheet
-const DEFAULT_BASE = {0.5:1365000,1:2603000,2:5146000,3:7695000,5:12643000,10:25037000,25:62470000,50:124766000,100:249366000};
+/* ================= STATE ================= */
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu5r45XRcEfSv6OA_1EBVtqH5LRJiR9rQHEUMoEbSaUv7xmeluVk588gcQV0ywxCDu/exec';
+let SCRIPT_URL = '';
+let currentUser = null; // {id, nama, username, role}
+let DB = { merek: [], ukuran: [], harga: [], pembelian: [], transaksi: [], users: [] };
+let charts = {};
+const rupiah = n => 'Rp ' + Math.round(n||0).toLocaleString('id-ID');
+const todayStr = () => new Date().toISOString().slice(0,10);
+const slug = s => (s||'').replace(/\s+/g,'-');
 
-function rupiah(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function toast(msg, ok=true){
+  const t = document.createElement('div');
+  t.className = 'toast'; t.style.borderColor = ok? 'var(--gold)':'var(--red)';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3200);
+}
 
-function buildEditor(){
-  const tbody = document.getElementById('editor-body');
-  tbody.innerHTML = DENOM.map(g => `
-    <tr data-g="${g}">
-      <td class="gr">${g}</td>
-      <td><input type="number" step="1000" class="f-dasar" value="${DEFAULT_BASE[g]}" oninput="hitungUlang()"></td>
-      <td class="computed jual" id="jual-${g}">-</td>
-      <td class="computed beli" id="beli-${g}">-</td>
+/* ================= PERSISTENT STORAGE (URL script + sesi login) ================= */
+async function loadScriptUrl(){
+  try{
+    const r = await window.storage.get('script_url', false);
+    if(r && r.value){ SCRIPT_URL = r.value; }
+    else { SCRIPT_URL = DEFAULT_SCRIPT_URL; await saveScriptUrl(SCRIPT_URL); }
+  }catch(e){ SCRIPT_URL = DEFAULT_SCRIPT_URL; }
+  document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+  document.getElementById('loginScriptUrl').value = SCRIPT_URL;
+}
+async function saveScriptUrl(url){
+  SCRIPT_URL = url;
+  try{ await window.storage.set('script_url', url, false); }catch(e){}
+}
+async function loadSession(){
+  try{
+    const r = await window.storage.get('session', false);
+    if(r && r.value){ currentUser = JSON.parse(r.value); }
+  }catch(e){ /* belum login */ }
+}
+async function saveSession(user){
+  currentUser = user;
+  try{ await window.storage.set('session', JSON.stringify(user), false); }catch(e){}
+}
+async function clearSession(){
+  currentUser = null;
+  try{ await window.storage.delete('session', false); }catch(e){}
+}
+
+/* ================= API ================= */
+async function api(action, payload={}){
+  if(!SCRIPT_URL){ throw new Error('URL Apps Script belum diatur. Buka tab Pengaturan.'); }
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type':'text/plain;charset=utf-8' }, // hindari CORS preflight
+    body: JSON.stringify({ action, payload })
+  });
+  const json = await res.json();
+  if(!json.ok) throw new Error(json.error || 'Gagal memuat data');
+  return json.data;
+}
+
+function setConn(ok){
+  document.getElementById('connDot').className = 'dot' + (ok?'':' off');
+  document.getElementById('connLabel').textContent = ok ? 'Terhubung ke Google Sheets' : 'Belum terhubung';
+}
+
+/* ================= LOAD ALL DATA ================= */
+async function refreshAll(){
+  if(!currentUser){ showLogin(); return; }
+  try{
+    const data = await api('getAll');
+    DB = data;
+    setConn(true);
+    renderAll();
+  }catch(e){
+    setConn(false);
+    toast('Gagal memuat data: '+e.message, false);
+  }
+}
+
+function renderAll(){
+  const steps = [renderMasterSelects, renderMaster, renderUsers, renderHargaGrid, renderHargaHistori, renderTransaksi, renderPembelian, renderStok, renderDashboard, applyRoleGating];
+  steps.forEach(fn=>{
+    try{ fn(); }catch(e){ console.error(fn.name+' error:', e); }
+  });
+}
+
+/* ================= LOGIN / SESSION ================= */
+function showApp(){
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('userInfo').classList.remove('hidden');
+  document.getElementById('btnLogout').classList.remove('hidden');
+  document.getElementById('userNama').textContent = currentUser.nama;
+  document.getElementById('userRole').textContent = currentUser.role;
+}
+function showLogin(){
+  document.getElementById('loginOverlay').classList.remove('hidden');
+  document.getElementById('userInfo').classList.add('hidden');
+  document.getElementById('btnLogout').classList.add('hidden');
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginMsg').innerHTML = '';
+}
+
+document.getElementById('btnLogin').onclick = async ()=>{
+  const url = document.getElementById('loginScriptUrl').value.trim();
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg');
+  if(!url.startsWith('https://script.google.com/')) return msg.innerHTML = '<span style="color:var(--red)">URL database belum diisi / tidak valid</span>';
+  if(!username || !password) return msg.innerHTML = '<span style="color:var(--red)">Isi username & password</span>';
+  await saveScriptUrl(url);
+  msg.innerHTML = '<span class="muted">Memeriksa...</span>';
+  try{
+    const user = await api('login', {username, password});
+    await saveSession(user);
+    setConn(true);
+    showApp();
+    toast('Selamat datang, '+user.nama);
+    refreshAll();
+  }catch(e){
+    setConn(false);
+    msg.innerHTML = '<span style="color:var(--red)">✗ '+e.message+'</span>';
+  }
+};
+document.getElementById('loginPassword').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('btnLogin').click(); });
+
+document.getElementById('btnLogout').onclick = async ()=>{
+  await clearSession();
+  showLogin();
+  toast('Berhasil keluar');
+};
+
+/* Batasi akses tab & tombol tulis sesuai peran (Admin penuh, Kasir transaksi/pembelian, Viewer baca saja) */
+function applyRoleGating(){
+  if(!currentUser) return;
+  const role = currentUser.role;
+  const adminOnlyTabs = ['harga','master','pengguna'];
+  const writeButtons = ['btnSaveHargaAll','btnSaveTrx','btnSavePmb','btnAddMerek','btnAddUkuran','btnAddUser'];
+
+  document.querySelectorAll('#navBar button').forEach(b=>{
+    const tab = b.dataset.tab;
+    let allowed = true;
+    if(role === 'Kasir' && adminOnlyTabs.includes(tab)) allowed = false;
+    if(role === 'Viewer' && (adminOnlyTabs.includes(tab) || tab==='pengaturan')) allowed = false;
+    b.style.display = allowed ? '' : 'none';
+  });
+
+  writeButtons.forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    const isAdminOnlyBtn = ['btnSaveHargaAll','btnAddMerek','btnAddUkuran','btnAddUser'].includes(id);
+    if(role === 'Viewer') el.disabled = true;
+    else if(role === 'Kasir' && isAdminOnlyBtn) el.disabled = true;
+    else el.disabled = false;
+  });
+}
+
+function renderUsers(){
+  if(!currentUser || currentUser.role !== 'Admin') return;
+  document.getElementById('tblUsers').innerHTML = (DB.users||[]).map(u=>`
+    <tr><td>${u.nama}</td><td class="mono">${u.username}</td><td>${u.role}</td>
+    <td>${(u.aktif===true||u.aktif==='TRUE')?'✅ Aktif':'⛔ Nonaktif'}</td>
+    <td><button class="btn small secondary" onclick="toggleUserAktif('${u.id}')" ${u.username==='admin'?'disabled title="Admin utama tidak bisa dinonaktifkan lewat sini"':''}>Toggle</button></td></tr>`).join('')
+    || `<tr><td colspan=5 class="empty">Belum ada pengguna lain</td></tr>`;
+}
+async function toggleUserAktif(id){
+  try{ await api('toggleUser',{id}); toast('Status pengguna diperbarui'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+}
+document.getElementById('btnAddUser').onclick = async ()=>{
+  const payload = {
+    nama: document.getElementById('newUserNama').value.trim(),
+    username: document.getElementById('newUserUsername').value.trim(),
+    password: document.getElementById('newUserPassword').value,
+    role: document.getElementById('newUserRole').value
+  };
+  if(!payload.nama || !payload.username || !payload.password) return toast('Lengkapi semua kolom pengguna', false);
+  try{
+    await api('addUser', payload);
+    document.getElementById('newUserNama').value = '';
+    document.getElementById('newUserUsername').value = '';
+    document.getElementById('newUserPassword').value = '';
+    toast('Pengguna ditambahkan');
+    refreshAll();
+  }catch(e){ toast(e.message,false); }
+};
+
+/* ================= MASTER (Merek & Ukuran) ================= */
+function activeMerek(){ return DB.merek.filter(m=>m.aktif===true||m.aktif==='TRUE'||m.aktif==='true'); }
+function activeUkuran(){ return DB.ukuran.filter(u=>u.aktif===true||u.aktif==='TRUE'||u.aktif==='true').sort((a,b)=>a.berat_gr-b.berat_gr); }
+
+function renderMasterSelects(){
+  const merekOpts = activeMerek().map(m=>`<option value="${m.nama}">${m.nama}</option>`).join('');
+  const beratOpts = activeUkuran().map(u=>`<option value="${u.berat_gr}">${u.berat_gr} gr</option>`).join('');
+  ['trxMerek','pmbMerek','imgMerek'].forEach(id=>document.getElementById(id).innerHTML = merekOpts);
+  ['trxBerat','pmbBerat'].forEach(id=>document.getElementById(id).innerHTML = beratOpts);
+}
+
+function renderMaster(){
+  document.getElementById('tblMerek').innerHTML = DB.merek.map(m=>`
+    <tr><td><span class="tag-brand tag-${slug(m.nama)}">${m.nama}</span></td>
+    <td>${(m.aktif===true||m.aktif==='TRUE')?'✅ Aktif':'⛔ Nonaktif'}</td>
+    <td><button class="btn small secondary" onclick="toggleMaster('Merek','${m.id}')">Toggle</button></td></tr>`).join('') || `<tr><td colspan=3 class="empty">Belum ada merek</td></tr>`;
+
+  document.getElementById('tblUkuran').innerHTML = DB.ukuran.map(u=>`
+    <tr><td>${u.berat_gr} gr</td>
+    <td>${(u.aktif===true||u.aktif==='TRUE')?'✅ Aktif':'⛔ Nonaktif'}</td>
+    <td><button class="btn small secondary" onclick="toggleMaster('Ukuran','${u.id}')">Toggle</button></td></tr>`).join('') || `<tr><td colspan=3 class="empty">Belum ada ukuran</td></tr>`;
+}
+
+async function toggleMaster(kind, id){
+  try{ await api('toggle'+kind, {id}); toast('Status diperbarui'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+}
+
+document.getElementById('btnAddMerek').onclick = async ()=>{
+  const nama = document.getElementById('newMerek').value.trim();
+  if(!nama) return toast('Isi nama merek', false);
+  try{ await api('addMerek',{nama}); document.getElementById('newMerek').value=''; toast('Merek ditambahkan'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+};
+document.getElementById('btnAddUkuran').onclick = async ()=>{
+  const berat_gr = document.getElementById('newUkuran').value;
+  if(!berat_gr) return toast('Isi berat', false);
+  try{ await api('addUkuran',{berat_gr}); document.getElementById('newUkuran').value=''; toast('Ukuran ditambahkan'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+};
+
+/* ================= HARGA PER GRAM (AUTO-GENERATE, PRODUSEN + MARGIN) ================= */
+const DEFAULT_MARGIN_BELI = 25000;   // Rp/gr tetap, ditambahkan ke harga buyback produsen
+const DEFAULT_MARGIN_JUAL_PCT = 2.58; // % dari harga jual produsen
+
+function renderHargaPerGramGrid(){
+  const rows = activeMerek().map(m=>`
+    <tr>
+      <td><span class="tag-brand tag-${slug(m.nama)}">${m.nama}</span></td>
+      <td><input type="number" class="mono pgInput" data-merek="${m.nama}" data-field="beli_produsen" placeholder="cth 1640000"></td>
+      <td><input type="number" class="mono pgInput" data-merek="${m.nama}" data-field="margin_beli" value="${DEFAULT_MARGIN_BELI}"></td>
+      <td class="mono" data-pg-final="${m.nama}|beli">-</td>
+      <td><input type="number" class="mono pgInput" data-merek="${m.nama}" data-field="jual_produsen" placeholder="cth 1730000"></td>
+      <td><input type="number" step="0.01" class="mono pgInput" data-merek="${m.nama}" data-field="margin_jual_pct" value="${DEFAULT_MARGIN_JUAL_PCT}"></td>
+      <td class="mono" data-pg-final="${m.nama}|jual">-</td>
+      <td><button class="btn small secondary" onclick="generateForMerek('${m.nama}')">Terapkan</button></td>
     </tr>`).join('');
-}
-
-function hitungUlang(){
-  const pctJual = parseFloat(document.getElementById('marginJualPct').value)||0;
-  const flatBeli = parseFloat(document.getElementById('marginBeliFlat').value)||0;
-  const bulat = parseFloat(document.getElementById('pembulatan').value)||1;
-  const tampilBeli = document.getElementById('tampilBeli').checked;
-  const tanggal = document.getElementById('tanggal').value || '';
-
-  document.getElementById('ec-tanggal').textContent = tanggal;
-
-  let jualRows = '', beliRows = '';
-  DENOM.forEach(g => {
-    const dasarInput = document.querySelector(`tr[data-g="${g}"] .f-dasar`);
-    const dasar = parseFloat(dasarInput.value)||0;
-
-    const jual = Math.round((dasar * (1 + pctJual/100)) / bulat) * bulat;
-    const beli = Math.round((dasar - flatBeli) / bulat) * bulat;
-
-    document.getElementById(`jual-${g}`).textContent = rupiah(jual);
-    document.getElementById(`beli-${g}`).textContent = rupiah(beli);
-
-    jualRows += `<tr><td>${g}</td><td>${rupiah(jual)}</td></tr>`;
-    beliRows += `<tr><td>${g} gr</td><td>${rupiah(beli)}</td></tr>`;
-  });
-
-  document.getElementById('ec-jual-body').innerHTML = jualRows;
-  document.getElementById('ec-beli-body').innerHTML = beliRows;
-  document.getElementById('ec-beli-wrap').style.display = tampilBeli ? 'table' : 'none';
-}
-
-function unduhGambar(){
-  const el = document.getElementById('export-card');
-  html2canvas(el, {scale:3, backgroundColor:'#ffffff'}).then(canvas => {
-    const link = document.createElement('a');
-    const tanggal = (document.getElementById('tanggal').value || 'harga-emas').replace(/[^a-zA-Z0-9-]/g,'');
-    link.download = `harga-emas-${tanggal}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+  document.getElementById('hargaPerGramGrid').innerHTML = rows || `<tr><td colspan=8 class="empty">Tambahkan merek dulu di tab Merek & Ukuran</td></tr>`;
+  document.querySelectorAll('.pgInput').forEach(inp=>{
+    inp.addEventListener('input', ()=> updatePgFinalPreview(inp.dataset.merek));
   });
 }
 
-['tanggal','marginJualPct','marginBeliFlat','pembulatan','tampilBeli'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', hitungUlang);
-  document.getElementById(id).addEventListener('change', hitungUlang);
+function updatePgFinalPreview(merek){
+  const val = f => Number(document.querySelector(`.pgInput[data-merek="${merek}"][data-field="${f}"]`)?.value || 0);
+  const beliProdusen = val('beli_produsen'), jualProdusen = val('jual_produsen');
+  const finalBeli = beliProdusen + val('margin_beli');
+  const marginJualRp = jualProdusen * (val('margin_jual_pct')/100);
+  const finalJual = jualProdusen + marginJualRp;
+  const beliCell = document.querySelector(`[data-pg-final="${merek}|beli"]`);
+  const jualCell = document.querySelector(`[data-pg-final="${merek}|jual"]`);
+  if(beliCell) beliCell.textContent = beliProdusen ? rupiah(finalBeli) : '-';
+  if(jualCell) jualCell.textContent = jualProdusen ? rupiah(finalJual) : '-';
+}
+
+function roundHarga(v){
+  if(!document.getElementById('bulatkanHarga').checked) return Math.round(v);
+  return Math.round(v/1000)*1000;
+}
+
+function generateForMerek(merek){
+  const val = f => Number(document.querySelector(`.pgInput[data-merek="${merek}"][data-field="${f}"]`)?.value || 0);
+  const beliProdusenGr = val('beli_produsen'), marginBeliGr = val('margin_beli');
+  const jualProdusenGr = val('jual_produsen'), marginJualPct = val('margin_jual_pct');
+  const marginJualGr = jualProdusenGr * (marginJualPct/100);
+  if(!beliProdusenGr || !jualProdusenGr) return toast('Isi harga buyback & jual dari produsen per gram untuk '+merek+' dulu', false);
+
+  activeUkuran().forEach(u=>{
+    setCell(merek, u.berat_gr, 'beli_produsen', roundHarga(beliProdusenGr * u.berat_gr));
+    setCell(merek, u.berat_gr, 'margin_beli', roundHarga(marginBeliGr * u.berat_gr));
+    setCell(merek, u.berat_gr, 'jual_produsen', roundHarga(jualProdusenGr * u.berat_gr));
+    setCell(merek, u.berat_gr, 'margin_jual', roundHarga(marginJualGr * u.berat_gr));
+    updateFinalCells(merek, u.berat_gr);
+  });
+  toast('Tabel harga '+merek+' terisi otomatis (margin jual '+marginJualPct+'%, margin buyback '+rupiah(marginBeliGr)+'/gr) — cek & klik "Simpan Semua Harga"');
+}
+function setCell(merek, berat, field, value){
+  const cell = document.querySelector(`.hgInput[data-merek="${merek}"][data-berat="${berat}"][data-field="${field}"]`);
+  if(cell) cell.value = value;
+}
+
+document.getElementById('btnGenerateSemua').onclick = ()=>{
+  const merekList = [...new Set([...document.querySelectorAll('.pgInput')].map(i=>i.dataset.merek))];
+  let applied = 0;
+  merekList.forEach(m=>{
+    const beli = document.querySelector(`.pgInput[data-merek="${m}"][data-field="beli_produsen"]`).value;
+    const jual = document.querySelector(`.pgInput[data-merek="${m}"][data-field="jual_produsen"]`).value;
+    if(beli && jual){ generateForMerek(m); applied++; }
+  });
+  if(!applied) toast('Isi minimal satu baris harga dari produsen dulu', false);
+};
+
+function updateFinalCells(merek, berat){
+  const val = f => Number(document.querySelector(`.hgInput[data-merek="${merek}"][data-berat="${berat}"][data-field="${f}"]`)?.value || 0);
+  const finalBeli = val('beli_produsen') + val('margin_beli');
+  const finalJual = val('jual_produsen') + val('margin_jual');
+  const beliCell = document.querySelector(`[data-final-merek="${merek}"][data-final-berat="${berat}"][data-final-type="beli"]`);
+  const jualCell = document.querySelector(`[data-final-merek="${merek}"][data-final-berat="${berat}"][data-final-type="jual"]`);
+  if(beliCell) beliCell.textContent = finalBeli ? rupiah(finalBeli) : '-';
+  if(jualCell) jualCell.textContent = finalJual ? rupiah(finalJual) : '-';
+}
+
+/* ================= HARGA HARIAN ================= */
+function hargaFor(tanggal, merek, berat){
+  return DB.harga.find(h=>h.tanggal===tanggal && h.merek===merek && Number(h.berat_gr)===Number(berat));
+}
+function latestHarga(merek, berat){
+  const rows = DB.harga.filter(h=>h.merek===merek && Number(h.berat_gr)===Number(berat)).sort((a,b)=>a.tanggal<b.tanggal?1:-1);
+  return rows[0];
+}
+
+function renderHargaGrid(){
+  const tgl = document.getElementById('hargaTanggal').value || todayStr();
+  document.getElementById('hargaTanggal').value = tgl;
+  let rows = '';
+  activeMerek().forEach(m=>{
+    activeUkuran().forEach(u=>{
+      const h = hargaFor(tgl, m.nama, u.berat_gr);
+      const beliProdusen = h? h.harga_beli_produsen : '';
+      const marginBeli = h? h.margin_beli : '';
+      const jualProdusen = h? h.harga_jual_produsen : '';
+      const marginJual = h? h.margin_jual : '';
+      const finalBeli = h? h.harga_beli : '';
+      const finalJual = h? h.harga_jual : '';
+      rows += `<tr>
+        <td><span class="tag-brand tag-${slug(m.nama)}">${m.nama}</span></td>
+        <td>${u.berat_gr} gr</td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="beli_produsen" value="${beliProdusen}" placeholder="0"></td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="margin_beli" value="${marginBeli}" placeholder="0"></td>
+        <td class="mono" style="color:var(--gold-light);font-weight:700;" data-final-merek="${m.nama}" data-final-berat="${u.berat_gr}" data-final-type="beli">${(beliProdusen!==''&&marginBeli!=='')? rupiah(finalBeli): '-'}</td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="jual_produsen" value="${jualProdusen}" placeholder="0"></td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="margin_jual" value="${marginJual}" placeholder="0"></td>
+        <td class="mono" style="color:var(--gold-light);font-weight:700;" data-final-merek="${m.nama}" data-final-berat="${u.berat_gr}" data-final-type="jual">${(jualProdusen!==''&&marginJual!=='')? rupiah(finalJual): '-'}</td>
+      </tr>`;
+    });
+  });
+  document.getElementById('hargaGrid').innerHTML = rows || `<tr><td colspan=8 class="empty">Tambahkan merek & ukuran dulu di tab Merek & Ukuran</td></tr>`;
+  renderHargaPerGramGrid();
+  document.querySelectorAll('.hgInput').forEach(inp=>{
+    inp.addEventListener('input', ()=> updateFinalCells(inp.dataset.merek, inp.dataset.berat));
+  });
+}
+document.getElementById('hargaTanggal').addEventListener('change', renderHargaGrid);
+
+document.getElementById('btnSaveHargaAll').onclick = async ()=>{
+  const tgl = document.getElementById('hargaTanggal').value || todayStr();
+  const inputs = [...document.querySelectorAll('.hgInput')];
+  const map = {};
+  inputs.forEach(inp=>{
+    const key = inp.dataset.merek+'|'+inp.dataset.berat;
+    map[key] = map[key] || {};
+    map[key][inp.dataset.field] = inp.value;
+  });
+  const jobs = Object.entries(map).filter(([k,v])=>v.beli_produsen && v.jual_produsen).map(([k,v])=>{
+    const [merek, berat_gr] = k.split('|');
+    const harga_beli = Number(v.beli_produsen||0) + Number(v.margin_beli||0);
+    const harga_jual = Number(v.jual_produsen||0) + Number(v.margin_jual||0);
+    return api('setHarga',{
+      tanggal:tgl, merek, berat_gr,
+      harga_beli_produsen: v.beli_produsen, margin_beli: v.margin_beli||0, harga_beli,
+      harga_jual_produsen: v.jual_produsen, margin_jual: v.margin_jual||0, harga_jual,
+      user:currentUser.nama
+    });
+  });
+  if(!jobs.length) return toast('Isi minimal satu baris harga buyback & jual dari produsen', false);
+  try{ await Promise.all(jobs); toast('Harga harian tersimpan'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+};
+
+function renderHargaHistori(){
+  const rows = [...DB.harga].sort((a,b)=> (a.updated_at<b.updated_at?1:-1)).slice(0,30);
+  document.getElementById('tblHargaHistori').innerHTML = rows.map(h=>`
+    <tr><td>${h.tanggal}</td><td><span class="tag-brand tag-${slug(h.merek)}">${h.merek}</span></td><td>${h.berat_gr} gr</td>
+    <td class="mono">${rupiah(h.harga_beli)}</td><td class="mono">${rupiah(h.harga_jual)}</td>
+    <td class="muted">${(h.updated_at||'').toString().slice(0,16).replace('T',' ')}</td></tr>`).join('')
+    || `<tr><td colspan=6 class="empty">Belum ada histori harga</td></tr>`;
+}
+
+/* ================= DOWNLOAD GAMBAR DAFTAR HARGA ================= */
+function fmtRupiahPlain(n){ return Math.round(n||0).toLocaleString('id-ID'); }
+
+async function downloadHargaImage(){
+  const merek = document.getElementById('imgMerek').value;
+  const tipe = document.getElementById('imgTipe').value; // 'jual' | 'beli'
+  const tgl = document.getElementById('hargaTanggal').value || todayStr();
+  if(!merek) return toast('Tambahkan merek dulu', false);
+
+  const rows = activeUkuran().map(u=>{
+    const h = hargaFor(tgl, merek, u.berat_gr) || latestHarga(merek, u.berat_gr);
+    const harga = h ? (tipe==='jual' ? h.harga_jual : h.harga_beli) : null;
+    return { berat: u.berat_gr, harga };
+  }).filter(r => r.harga);
+
+  if(!rows.length) return toast('Belum ada harga tersimpan untuk merek & tanggal ini — isi dulu di tabel di atas', false);
+
+  try{ await document.fonts.ready; }catch(e){}
+
+  const W = 640;
+  const padX = 44;
+  const headerH = 150;
+  const tableHeaderH = 56;
+  const rowH = 58;
+  const footerH = 130;
+  const H = headerH + tableHeaderH + rows.length*rowH + footerH;
+
+  const canvas = document.getElementById('priceImgCanvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const bgGrad = ctx.createLinearGradient(0,0,0,H);
+  bgGrad.addColorStop(0,'#11162a'); bgGrad.addColorStop(1,'#0a0d18');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0,0,W,H);
+
+  // Header
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#d4af37';
+  ctx.font = '700 30px Georgia, serif';
+  ctx.fillText('HAVVA GOLD', W/2, 52);
+  ctx.fillStyle = '#8b93b3';
+  ctx.font = '600 12px Arial';
+  ctx.fillText('T O K O   E M A S   T E R P E R C A Y A', W/2, 72);
+
+  ctx.fillStyle = '#f4d888';
+  ctx.font = '700 22px Georgia, serif';
+  ctx.fillText(merek.toUpperCase() + ' — ' + (tipe==='jual' ? 'HARGA JUAL' : 'HARGA BUYBACK'), W/2, 108);
+  ctx.fillStyle = '#cfd4ea';
+  ctx.font = '500 14px Arial';
+  const tglFmt = new Date(tgl+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
+  ctx.fillText(tglFmt, W/2, 132);
+
+  // Table header
+  let y = headerH;
+  ctx.fillStyle = '#1c2340';
+  ctx.fillRect(padX, y, W-padX*2, tableHeaderH);
+  ctx.fillStyle = '#d4af37';
+  ctx.font = '700 16px Arial';
+  ctx.textAlign = 'left';
+  ctx.fillText('GRAM', padX+24, y+tableHeaderH/2+6);
+  ctx.textAlign = 'right';
+  ctx.fillText('HARGA', W-padX-24, y+tableHeaderH/2+6);
+  y += tableHeaderH;
+
+  // Rows
+  rows.forEach((r,i)=>{
+    ctx.fillStyle = i%2===0 ? '#151b33' : '#11162a';
+    ctx.fillRect(padX, y, W-padX*2, rowH);
+    ctx.fillStyle = '#faf6ec';
+    ctx.font = '600 18px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(r.berat + ' gr', padX+24, y+rowH/2+6);
+    ctx.fillStyle = '#f4d888';
+    ctx.font = '700 18px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText('Rp ' + fmtRupiahPlain(r.harga), W-padX-24, y+rowH/2+6);
+    y += rowH;
+  });
+
+  // Divider
+  ctx.strokeStyle = '#26304f'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padX,y+18); ctx.lineTo(W-padX,y+18); ctx.stroke();
+
+  // Footer caption
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#d4af37';
+  ctx.font = '700 15px Arial';
+  const caption = tipe==='beli'
+    ? 'Kami menerima buyback dengan harga terbaik'
+    : 'Harga emas terbaik hari ini — syarat & ketentuan berlaku';
+  ctx.fillText(caption, W/2, y+52);
+  ctx.fillStyle = '#6b7290';
+  ctx.font = '400 11.5px Arial';
+  ctx.fillText('Harga sewaktu-waktu dapat berubah mengikuti pasar', W/2, y+74);
+
+  // Trigger download
+  canvas.toBlob(blob=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `havva-gold-harga-${tipe}-${slug(merek)}-${tgl}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
+}
+document.getElementById('btnDownloadImg').onclick = downloadHargaImage;
+function calcTrxTotal(){
+  const qty = Number(document.getElementById('trxQty').value||0);
+  const harga = Number(document.getElementById('trxHarga').value||0);
+  const diskon = Number(document.getElementById('trxDiskon').value||0);
+  const pajak = Number(document.getElementById('trxPajak').value||0);
+  const total = qty*harga - diskon + pajak;
+  document.getElementById('trxTotal').value = rupiah(total);
+  return total;
+}
+['trxQty','trxHarga','trxDiskon','trxPajak'].forEach(id=>document.getElementById(id).addEventListener('input', calcTrxTotal));
+
+function autoFillHarga(prefix){
+  const merek = document.getElementById(prefix+'Merek').value;
+  const berat = document.getElementById(prefix+'Berat').value;
+  const tgl = document.getElementById(prefix==='trx'?'trxTanggal':'pmbTanggal').value || todayStr();
+  const h = hargaFor(tgl, merek, berat) || latestHarga(merek, berat);
+  if(h){
+    if(prefix==='trx') document.getElementById('trxHarga').value = h.harga_jual;
+    if(prefix==='pmb') document.getElementById('pmbHarga').value = h.harga_beli;
+  }
+  if(prefix==='trx') calcTrxTotal(); else calcPmbTotal();
+}
+document.getElementById('trxMerek').addEventListener('change',()=>autoFillHarga('trx'));
+document.getElementById('trxBerat').addEventListener('change',()=>autoFillHarga('trx'));
+
+document.getElementById('btnSaveTrx').onclick = async ()=>{
+  const payload = {
+    tanggal: document.getElementById('trxTanggal').value || todayStr(),
+    merek: document.getElementById('trxMerek').value,
+    berat_gr: document.getElementById('trxBerat').value,
+    harga_jual: document.getElementById('trxHarga').value,
+    qty: document.getElementById('trxQty').value,
+    diskon: document.getElementById('trxDiskon').value,
+    pajak: document.getElementById('trxPajak').value,
+    user: currentUser.nama
+  };
+  if(!payload.merek || !payload.berat_gr || !payload.harga_jual) return toast('Lengkapi merek, berat & harga jual', false);
+  try{ await api('addTransaksi', payload); toast('Transaksi tersimpan'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+};
+
+function renderTransaksi(){
+  const rows = [...DB.transaksi].sort((a,b)=> (a.created_at<b.created_at?1:-1)).slice(0,50);
+  document.getElementById('tblTransaksi').innerHTML = rows.map(t=>`
+    <tr><td>${t.tanggal}</td><td><span class="tag-brand tag-${slug(t.merek)}">${t.merek}</span></td><td>${t.berat_gr} gr</td>
+    <td>${t.qty}</td><td class="mono">${rupiah(t.total)}</td><td>${t.user}</td></tr>`).join('')
+    || `<tr><td colspan=6 class="empty">Belum ada transaksi</td></tr>`;
+}
+
+/* ================= PEMBELIAN ================= */
+function calcPmbTotal(){
+  const qty = Number(document.getElementById('pmbQty').value||0);
+  const harga = Number(document.getElementById('pmbHarga').value||0);
+  document.getElementById('pmbTotal').value = rupiah(qty*harga);
+}
+['pmbQty','pmbHarga'].forEach(id=>document.getElementById(id).addEventListener('input', calcPmbTotal));
+document.getElementById('pmbMerek').addEventListener('change',()=>autoFillHarga('pmb'));
+document.getElementById('pmbBerat').addEventListener('change',()=>autoFillHarga('pmb'));
+
+document.getElementById('btnSavePmb').onclick = async ()=>{
+  const payload = {
+    tanggal: document.getElementById('pmbTanggal').value || todayStr(),
+    merek: document.getElementById('pmbMerek').value,
+    berat_gr: document.getElementById('pmbBerat').value,
+    harga_beli: document.getElementById('pmbHarga').value,
+    qty: document.getElementById('pmbQty').value,
+    user: currentUser.nama
+  };
+  if(!payload.merek || !payload.berat_gr || !payload.harga_beli) return toast('Lengkapi merek, berat & harga beli', false);
+  try{ await api('addPembelian', payload); toast('Pembelian tersimpan, stok bertambah'); refreshAll(); }
+  catch(e){ toast(e.message,false); }
+};
+
+function renderPembelian(){
+  const rows = [...DB.pembelian].sort((a,b)=> (a.created_at<b.created_at?1:-1)).slice(0,50);
+  document.getElementById('tblPembelian').innerHTML = rows.map(p=>`
+    <tr><td>${p.tanggal}</td><td><span class="tag-brand tag-${slug(p.merek)}">${p.merek}</span></td><td>${p.berat_gr} gr</td>
+    <td>${p.qty}</td><td class="mono">${rupiah(p.harga_beli)}</td><td class="mono">${rupiah(p.total)}</td><td>${p.user}</td></tr>`).join('')
+    || `<tr><td colspan=7 class="empty">Belum ada pembelian</td></tr>`;
+}
+
+/* ================= STOK (terhitung) ================= */
+function computeStok(){
+  const map = {};
+  DB.pembelian.forEach(p=>{
+    const k = p.merek+'|'+p.berat_gr;
+    map[k] = map[k] || {merek:p.merek, berat_gr:Number(p.berat_gr), beliQty:0, beliNilai:0, jualQty:0};
+    map[k].beliQty += Number(p.qty); map[k].beliNilai += Number(p.total);
+  });
+  DB.transaksi.forEach(t=>{
+    const k = t.merek+'|'+t.berat_gr;
+    map[k] = map[k] || {merek:t.merek, berat_gr:Number(t.berat_gr), beliQty:0, beliNilai:0, jualQty:0};
+    map[k].jualQty += Number(t.qty);
+  });
+  return Object.values(map).map(r=>{
+    const rata = r.beliQty>0 ? r.beliNilai/r.beliQty : 0;
+    const sisaPcs = r.beliQty - r.jualQty;
+    const beratPerPcs = r.berat_gr;
+    const sisaGr = sisaPcs*beratPerPcs;
+    return {...r, rata, sisaPcs, sisaGr, nilai: sisaPcs*rata};
+  });
+}
+
+function renderStok(){
+  const stok = computeStok().sort((a,b)=> a.merek.localeCompare(b.merek) || a.berat_gr-b.berat_gr);
+  document.getElementById('tblStokDetail').innerHTML = stok.map(s=>`
+    <tr><td><span class="tag-brand tag-${slug(s.merek)}">${s.merek}</span></td><td>${s.berat_gr} gr</td>
+    <td>${(s.beliQty*s.berat_gr).toLocaleString('id-ID')}</td><td>${(s.jualQty*s.berat_gr).toLocaleString('id-ID')}</td>
+    <td class="mono">${s.sisaGr.toLocaleString('id-ID')}</td><td class="mono">${rupiah(s.rata)}</td><td class="mono">${rupiah(s.nilai)}</td></tr>`).join('')
+    || `<tr><td colspan=7 class="empty">Belum ada data stok</td></tr>`;
+}
+
+/* ================= DASHBOARD ================= */
+function last7Dates(){
+  const arr=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); arr.push(d.toISOString().slice(0,10)); } return arr;
+}
+
+function renderDashboard(){
+  try{ renderDashboardInner(); }
+  catch(e){ console.error('renderDashboard error:', e); toast('Sebagian dashboard gagal dimuat: '+e.message, false); }
+}
+
+function renderDashboardInner(){
+  const today = todayStr();
+  const trxToday = DB.transaksi.filter(t=>t.tanggal===today);
+  const omsetToday = trxToday.reduce((s,t)=>s+Number(t.total),0);
+
+  // Keuntungan hari ini: total jual - (rata2 harga beli * qty)
+  const stok = computeStok();
+  const rataMap = {}; stok.forEach(s=> rataMap[s.merek+'|'+s.berat_gr] = s.rata);
+  const untungToday = trxToday.reduce((s,t)=>{
+    const rata = rataMap[t.merek+'|'+t.berat_gr] || 0;
+    return s + (Number(t.total) - rata*Number(t.qty));
+  },0);
+
+  const totalStokGr = stok.reduce((s,r)=>s+Math.max(r.sisaGr,0),0);
+
+  document.getElementById('kpiPenjualan').textContent = rupiah(omsetToday);
+  document.getElementById('kpiUntung').textContent = rupiah(untungToday);
+  document.getElementById('kpiTrx').textContent = trxToday.length;
+  document.getElementById('kpiStok').textContent = totalStokGr.toLocaleString('id-ID')+' gr';
+  document.getElementById('kpiPenjualanDelta').textContent = trxToday.length? trxToday.length+' transaksi hari ini' : 'Belum ada transaksi';
+  document.getElementById('kpiUntungDelta').textContent = omsetToday? ((untungToday/omsetToday*100)||0).toFixed(1)+'% margin' : '-';
+  document.getElementById('kpiTrxDelta').textContent = 'vs kemarin';
+
+  // ---- charts 7 hari ----
+  const dates = last7Dates();
+  const omsetSeries = dates.map(d=> DB.transaksi.filter(t=>t.tanggal===d).reduce((s,t)=>s+Number(t.total),0));
+  const labaSeries = dates.map(d=> {
+    return DB.transaksi.filter(t=>t.tanggal===d).reduce((s,t)=>{
+      const rata = rataMap[t.merek+'|'+t.berat_gr] || 0;
+      return s + (Number(t.total)-rata*Number(t.qty));
+    },0);
+  });
+  drawLine('chartOmset', dates, omsetSeries, '#d4af37');
+  drawLine('chartLaba', dates, labaSeries, '#9b7bd8');
+
+  // ---- per merek / per ukuran (donut) hari ini ----
+  const byMerek = {}; trxToday.forEach(t=> byMerek[t.merek]=(byMerek[t.merek]||0)+Number(t.total));
+  drawDonut('chartMerek', Object.keys(byMerek), Object.values(byMerek), ['#e2596b','#5b8def','#9b7bd8','#3fbf7f','#f0b429']);
+
+  const byUkuran = {}; trxToday.forEach(t=> byUkuran[t.berat_gr+' gr']=(byUkuran[t.berat_gr+' gr']||0)+Number(t.total));
+  drawDonut('chartUkuran', Object.keys(byUkuran), Object.values(byUkuran), ['#5fd9a0','#7ba7ff','#f0b429','#c99bf0','#e2596b']);
+
+  // ---- top produk ----
+  const prodMap = {};
+  trxToday.forEach(t=>{
+    const k = t.merek+'|'+t.berat_gr;
+    prodMap[k] = prodMap[k] || {merek:t.merek, berat_gr:t.berat_gr, gr:0, omset:0};
+    prodMap[k].gr += Number(t.qty)*Number(t.berat_gr); prodMap[k].omset += Number(t.total);
+  });
+  const top = Object.values(prodMap).sort((a,b)=>b.omset-a.omset).slice(0,6);
+  document.getElementById('tblTop').innerHTML = top.map(p=>`
+    <tr><td><span class="tag-brand tag-${slug(p.merek)}">${p.merek}</span></td><td>${p.berat_gr} gr</td>
+    <td>${p.gr.toLocaleString('id-ID')}</td><td class="mono">${rupiah(p.omset)}</td></tr>`).join('')
+    || `<tr><td colspan=4 class="empty">Belum ada penjualan hari ini</td></tr>`;
+
+  // ---- ringkasan stok per merek ----
+  const stokMerek = {};
+  stok.forEach(s=>{ stokMerek[s.merek]=stokMerek[s.merek]||{gr:0,nilai:0}; stokMerek[s.merek].gr+=Math.max(s.sisaGr,0); stokMerek[s.merek].nilai+=Math.max(s.nilai,0); });
+  document.getElementById('tblStokMerek').innerHTML = Object.entries(stokMerek).map(([m,v])=>`
+    <tr><td><span class="tag-brand tag-${slug(m)}">${m}</span></td><td>${v.gr.toLocaleString('id-ID')} gr</td><td class="mono">${rupiah(v.nilai)}</td></tr>`).join('')
+    || `<tr><td colspan=3 class="empty">Belum ada stok</td></tr>`;
+}
+
+function chartUnavailable(id){
+  const canvas = document.getElementById(id);
+  const wrap = canvas.parentElement;
+  wrap.innerHTML = '<div class="empty" style="padding-top:70px;">Grafik tidak bisa dimuat (library Chart.js diblokir jaringan/browser).<br>Data lain di dashboard tetap berfungsi normal.</div>';
+}
+
+function drawLine(id, labels, data, color){
+  if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
+  const ctx = document.getElementById(id).getContext('2d');
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type:'line',
+    data:{ labels: labels.map(d=>d.slice(5)), datasets:[{ data, borderColor:color, backgroundColor:color+'33', fill:true, tension:.35, pointRadius:3, pointBackgroundColor:color }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}}, y:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}} } }
+  });
+}
+function drawDonut(id, labels, data, colors){
+  if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
+  const ctx = document.getElementById(id).getContext('2d');
+  if(charts[id]) charts[id].destroy();
+  if(!labels.length){ ctx.clearRect(0,0,999,999); return; }
+  charts[id] = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderColor:'#0f1426', borderWidth:3 }]},
+    options:{ plugins:{legend:{position:'right', labels:{color:'#cfd4ea', boxWidth:12, font:{size:11}}}} }
+  });
+}
+
+/* ================= NAV ================= */
+document.getElementById('navBar').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#navBar button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('main > section').forEach(s=>s.classList.add('hidden'));
+  document.getElementById('tab-'+btn.dataset.tab).classList.remove('hidden');
 });
 
-buildEditor();
-hitungUlang();
+document.getElementById('btnSaveUrl').onclick = async ()=>{
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if(!url.startsWith('https://script.google.com/')) return toast('URL sepertinya tidak valid', false);
+  await saveScriptUrl(url);
+  toast('URL disimpan, menguji koneksi...');
+  refreshAll();
+};
+document.getElementById('btnRefreshAll').onclick = refreshAll;
+
+/* ================= INIT ================= */
+(async function init(){
+  document.getElementById('trxTanggal').value = todayStr();
+  document.getElementById('pmbTanggal').value = todayStr();
+  document.getElementById('hargaTanggal').value = todayStr();
+  await loadScriptUrl();
+  await loadSession();
+  if(currentUser){
+    showApp();
+    refreshAll();
+  } else {
+    showLogin();
+  }
+})();
 </script>
 </body>
 </html>
