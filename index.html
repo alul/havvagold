@@ -201,7 +201,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
-    </div>
+  </div>
 </div>
 
 <div class="nav" id="navBar">
@@ -803,7 +803,7 @@ document.getElementById('btnSaveHargaAll').onclick = async ()=>{
   catch(e){ toast(e.message,false); }
 };
 
-const HISTORI_PAGE_SIZE = 10;
+const HISTORI_PAGE_SIZE = 20;
 let hargaHistoriPage = 1;
 
 function renderHargaHistori(){
