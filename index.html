@@ -201,7 +201,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
-    </div>
+  </div>
 </div>
 
 <div class="nav" id="navBar">
@@ -271,7 +271,7 @@
       </div>
       <div class="tbl-wrap">
       <table>
-        <thead><tr><th>Merek</th><th>Berat</th><th>Harga Beli (Rp)</th><th>Harga Jual (Rp)</th><th>Spread</th></tr></thead>
+        <thead><tr><th>Merek</th><th>Berat</th><th>Dasar Beli</th><th>Harga Beli (Rp)</th><th>Dasar Jual</th><th>Harga Jual (Rp)</th><th>Spread</th></tr></thead>
         <tbody id="hargaGrid"></tbody>
       </table>
       </div>
@@ -294,7 +294,7 @@
     </div>
     <div class="card">
       <h3><span class="sw"></span>Histori Harga</h3>
-      <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Harga Beli</th><th>Harga Jual</th><th>Update</th></tr></thead><tbody id="tblHargaHistori"></tbody></table>
+      <table><thead><tr><th>Tanggal</th><th>Merek</th><th>Berat</th><th>Dasar Beli</th><th>Harga Beli</th><th>Dasar Jual</th><th>Harga Jual</th><th>Update</th></tr></thead><tbody id="tblHargaHistori"></tbody></table>
       <div id="hargaHistoriPager" style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:12.5px;color:#8b93b3;"></div>
     </div>
   </section>
@@ -387,7 +387,6 @@
           <select id="newUserRole">
             <option value="Admin">Admin — akses penuh</option>
             <option value="Kasir" selected>Kasir — transaksi & pembelian</option>
-            <option value="Viewer">Viewer — lihat saja</option>
           </select>
         </div>
       </div>
@@ -428,7 +427,7 @@
 
 <script>
 /* ================= STATE ================= */
-const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwP_b1b514d0QBExFowHhXH6ePC7iZzgdk4a-B7UtwJYdlII9Vjr8-dLsAzHBDd8gNp/exec';
+const DEFAULT_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwu5r45XRcEfSv6OA_1EBVtqH5LRJiR9rQHEUMoEbSaUv7xmeluVk588gcQV0ywxCDu/exec';
 let SCRIPT_URL = '';
 let currentUser = null; // {id, nama, username, role}
 let DB = { merek: [], ukuran: [], harga: [], pembelian: [], transaksi: [], users: [] };
@@ -703,11 +702,14 @@ function generateForMerek(merek){
 
   activeUkuran().forEach(u=>{
     // Buyback final = (harga dasar produsen × berat) + margin flat (TIDAK dikali berat)
-    const finalBeli = roundHarga((beliProdusenGr * u.berat_gr) + marginBeliFlat);
+    const dasarBeli = roundHarga(beliProdusenGr * u.berat_gr);
+    const finalBeli = roundHarga(dasarBeli + marginBeliFlat);
     // Jual final = (harga dasar produsen × berat) + margin persen dari harga produsen ukuran itu
-    const jualProdusenUkuran = jualProdusenGr * u.berat_gr;
-    const finalJual = roundHarga(jualProdusenUkuran + (jualProdusenUkuran * marginJualPct/100));
+    const dasarJual = roundHarga(jualProdusenGr * u.berat_gr);
+    const finalJual = roundHarga(dasarJual + (dasarJual * marginJualPct/100));
+    setCell(merek, u.berat_gr, 'dasar_beli', dasarBeli);
     setCell(merek, u.berat_gr, 'beli', finalBeli);
+    setCell(merek, u.berat_gr, 'dasar_jual', dasarJual);
     setCell(merek, u.berat_gr, 'jual', finalJual);
     updateSpreadCell(merek, u.berat_gr);
   });
@@ -745,18 +747,22 @@ function renderHargaGrid(){
   activeMerek().forEach(m=>{
     activeUkuran().forEach(u=>{
       const h = hargaFor(tgl, m.nama, u.berat_gr);
+      const dasarBeli = h? h.harga_dasar_beli : '';
       const beli = h? h.harga_beli : '';
+      const dasarJual = h? h.harga_dasar_jual : '';
       const jual = h? h.harga_jual : '';
       rows += `<tr>
         <td><span class="tag-brand tag-${slug(m.nama)}">${m.nama}</span></td>
         <td>${u.berat_gr} gr</td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="dasar_beli" value="${dasarBeli}" placeholder="0"></td>
         <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="beli" value="${beli}" placeholder="0"></td>
+        <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="dasar_jual" value="${dasarJual}" placeholder="0"></td>
         <td><input type="number" class="mono hgInput" data-merek="${m.nama}" data-berat="${u.berat_gr}" data-field="jual" value="${jual}" placeholder="0"></td>
         <td class="mono" data-spread-merek="${m.nama}" data-spread-berat="${u.berat_gr}">${(beli&&jual)? rupiah(jual-beli):'-'}</td>
       </tr>`;
     });
   });
-  document.getElementById('hargaGrid').innerHTML = rows || `<tr><td colspan=5 class="empty">Tambahkan merek & ukuran dulu di tab Merek & Ukuran</td></tr>`;
+  document.getElementById('hargaGrid').innerHTML = rows || `<tr><td colspan=7 class="empty">Tambahkan merek & ukuran dulu di tab Merek & Ukuran</td></tr>`;
   renderHargaPerGramGrid();
   document.querySelectorAll('.hgInput').forEach(inp=>{
     inp.addEventListener('input', ()=> updateSpreadCell(inp.dataset.merek, inp.dataset.berat));
@@ -784,7 +790,12 @@ document.getElementById('btnSaveHargaAll').onclick = async ()=>{
   });
   const jobs = Object.entries(map).filter(([k,v])=>v.beli && v.jual).map(([k,v])=>{
     const [merek, berat_gr] = k.split('|');
-    return api('setHarga',{ tanggal:tgl, merek, berat_gr, harga_beli:v.beli, harga_jual:v.jual, user:currentUser.nama });
+    return api('setHarga',{
+      tanggal:tgl, merek, berat_gr,
+      harga_dasar_beli: v.dasar_beli||0, harga_beli:v.beli,
+      harga_dasar_jual: v.dasar_jual||0, harga_jual:v.jual,
+      user:currentUser.nama
+    });
   });
   if(!jobs.length) return toast('Isi minimal satu baris harga beli & jual', false);
   try{ await Promise.all(jobs); toast('Harga harian tersimpan'); refreshAll(); }
@@ -795,7 +806,13 @@ const HISTORI_PAGE_SIZE = 20;
 let hargaHistoriPage = 1;
 
 function renderHargaHistori(){
-  const all = [...DB.harga].sort((a,b)=> (a.updated_at<b.updated_at?1:-1));
+  // Urutkan berdasarkan TANGGAL asli data (bukan waktu update) — terbaru dulu,
+  // lalu merek & berat sebagai penentu urutan kedua supaya tidak acak.
+  const all = [...DB.harga].sort((a,b)=>{
+    if(a.tanggal !== b.tanggal) return a.tanggal < b.tanggal ? 1 : -1;
+    if(a.merek !== b.merek) return a.merek.localeCompare(b.merek);
+    return Number(a.berat_gr) - Number(b.berat_gr);
+  });
   const totalPages = Math.max(1, Math.ceil(all.length / HISTORI_PAGE_SIZE));
   if(hargaHistoriPage > totalPages) hargaHistoriPage = totalPages;
   if(hargaHistoriPage < 1) hargaHistoriPage = 1;
@@ -804,9 +821,10 @@ function renderHargaHistori(){
 
   document.getElementById('tblHargaHistori').innerHTML = rows.map(h=>`
     <tr><td>${h.tanggal}</td><td><span class="tag-brand tag-${slug(h.merek)}">${h.merek}</span></td><td>${h.berat_gr} gr</td>
-    <td class="mono">${rupiah(h.harga_beli)}</td><td class="mono">${rupiah(h.harga_jual)}</td>
+    <td class="mono muted">${rupiah(h.harga_dasar_beli)}</td><td class="mono">${rupiah(h.harga_beli)}</td>
+    <td class="mono muted">${rupiah(h.harga_dasar_jual)}</td><td class="mono">${rupiah(h.harga_jual)}</td>
     <td class="muted">${(h.updated_at||'').toString().slice(0,16).replace('T',' ')}</td></tr>`).join('')
-    || `<tr><td colspan=6 class="empty">Belum ada histori harga</td></tr>`;
+    || `<tr><td colspan=8 class="empty">Belum ada histori harga</td></tr>`;
 
   const pager = document.getElementById('hargaHistoriPager');
   if(all.length <= HISTORI_PAGE_SIZE){ pager.innerHTML = ''; return; }
