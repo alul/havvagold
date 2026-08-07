@@ -201,6 +201,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
+    
   </div>
 </div>
 
@@ -387,6 +388,7 @@
           <select id="newUserRole">
             <option value="Admin">Admin — akses penuh</option>
             <option value="Kasir" selected>Kasir — transaksi & pembelian</option>
+            <option value="Viewer">Viewer — lihat saja</option>
           </select>
         </div>
       </div>
@@ -788,18 +790,42 @@ document.getElementById('btnSaveHargaAll').onclick = async ()=>{
     map[key] = map[key] || {};
     map[key][inp.dataset.field] = inp.value;
   });
-  const jobs = Object.entries(map).filter(([k,v])=>v.beli && v.jual).map(([k,v])=>{
+  const entries = Object.entries(map).filter(([k,v])=>v.beli && v.jual);
+  if(!entries.length) return toast('Isi minimal satu baris harga beli & jual', false);
+
+  const btn = document.getElementById('btnSaveHargaAll');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  let ok = 0; const failed = [];
+
+  // Kirim SATU PER SATU (bukan paralel) — mencegah baris hilang akibat
+  // permintaan bersamaan yang bisa bentrok saat menulis ke Google Sheets.
+  for(const [k,v] of entries){
     const [merek, berat_gr] = k.split('|');
-    return api('setHarga',{
-      tanggal:tgl, merek, berat_gr,
-      harga_dasar_beli: v.dasar_beli||0, harga_beli:v.beli,
-      harga_dasar_jual: v.dasar_jual||0, harga_jual:v.jual,
-      user:currentUser.nama
-    });
-  });
-  if(!jobs.length) return toast('Isi minimal satu baris harga beli & jual', false);
-  try{ await Promise.all(jobs); toast('Harga harian tersimpan'); refreshAll(); }
-  catch(e){ toast(e.message,false); }
+    btn.textContent = `Menyimpan ${merek} ${berat_gr}gr… (${ok+failed.length+1}/${entries.length})`;
+    try{
+      await api('setHarga',{
+        tanggal:tgl, merek, berat_gr,
+        harga_dasar_beli: v.dasar_beli||0, harga_beli:v.beli,
+        harga_dasar_jual: v.dasar_jual||0, harga_jual:v.jual,
+        user:currentUser.nama
+      });
+      ok++;
+    }catch(e){
+      failed.push(`${merek} ${berat_gr}gr: ${e.message}`);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = originalLabel;
+
+  if(failed.length){
+    console.error('Baris harga yang GAGAL tersimpan:', failed);
+    toast(`${ok} harga tersimpan, ${failed.length} GAGAL — ${failed[0]}${failed.length>1?' (lihat console untuk lainnya)':''}`, false);
+  } else {
+    toast(`${ok} harga berhasil tersimpan`);
+  }
+  refreshAll();
 };
 
 const HISTORI_PAGE_SIZE = 20;
