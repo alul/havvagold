@@ -655,8 +655,8 @@ document.getElementById('btnAddUkuran').onclick = async ()=>{
 };
 
 /* ================= HARGA PER GRAM (AUTO-GENERATE, PRODUSEN + MARGIN) ================= */
-const DEFAULT_MARGIN_BELI = 25000;   // Rp flat per ukuran (bukan per gram), ditambahkan setelah harga produsen × berat
-const DEFAULT_MARGIN_JUAL_PCT = 2.58; // % dari harga jual produsen
+const DEFAULT_MARGIN_BELI = 20000;   // Rp flat per ukuran (bukan per gram), ditambahkan setelah harga produsen × berat
+const DEFAULT_MARGIN_JUAL_PCT = 2.6; // % dari harga jual produsen
 
 function renderHargaPerGramGrid(){
   const rows = activeMerek().map(m=>`
