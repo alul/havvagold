@@ -201,7 +201,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
-    
+   
   </div>
 </div>
 
@@ -292,6 +292,22 @@
         <div class="field" style="display:flex;align-items:end;"><button class="btn" id="btnDownloadImg" style="width:100%;">⬇ Download Gambar</button></div>
       </div>
       <canvas id="priceImgCanvas" class="hidden"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3><span class="sw"></span>📈 Grafik Tren Harga Emas</h3>
+      <div class="grid cols-3" style="margin-bottom:12px;">
+        <div class="field"><label>Merek</label><select id="trendMerek"></select></div>
+        <div class="field"><label>Ukuran</label><select id="trendBerat"></select></div>
+        <div class="field"><label>Rentang</label>
+          <select id="trendRange">
+            <option value="14">14 hari terakhir</option>
+            <option value="30" selected>30 hari terakhir</option>
+            <option value="90">90 hari terakhir</option>
+            <option value="9999">Semua data</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:280px;"><canvas id="chartTrenHarga"></canvas></div>
     </div>
     <div class="card">
       <h3><span class="sw"></span>Histori Harga</h3>
@@ -435,7 +451,12 @@ let currentUser = null; // {id, nama, username, role}
 let DB = { merek: [], ukuran: [], harga: [], pembelian: [], transaksi: [], users: [] };
 let charts = {};
 const rupiah = n => 'Rp ' + Math.round(n||0).toLocaleString('id-ID');
-const todayStr = () => new Date().toISOString().slice(0,10);
+// Pakai tanggal LOKAL perangkat (bukan UTC) supaya tidak "mundur" di WIB/WITA/WIT.
+const localDateStr = (d) => {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+};
+const todayStr = () => localDateStr(new Date());
 const slug = s => (s||'').replace(/\s+/g,'-');
 
 function toast(msg, ok=true){
@@ -508,7 +529,7 @@ async function refreshAll(){
 }
 
 function renderAll(){
-  const steps = [renderMasterSelects, renderMaster, renderUsers, renderHargaGrid, renderHargaHistori, renderTransaksi, renderPembelian, renderStok, renderDashboard, applyRoleGating];
+  const steps = [renderMasterSelects, renderMaster, renderUsers, renderHargaGrid, renderHargaHistori, renderTrendChart, renderTransaksi, renderPembelian, renderStok, renderDashboard, applyRoleGating];
   steps.forEach(fn=>{
     try{ fn(); }catch(e){ console.error(fn.name+' error:', e); }
   });
@@ -622,8 +643,19 @@ function activeUkuran(){ return DB.ukuran.filter(u=>u.aktif===true||u.aktif==='T
 function renderMasterSelects(){
   const merekOpts = activeMerek().map(m=>`<option value="${m.nama}">${m.nama}</option>`).join('');
   const beratOpts = activeUkuran().map(u=>`<option value="${u.berat_gr}">${u.berat_gr} gr</option>`).join('');
-  ['trxMerek','pmbMerek','imgMerek'].forEach(id=>document.getElementById(id).innerHTML = merekOpts);
-  ['trxBerat','pmbBerat'].forEach(id=>document.getElementById(id).innerHTML = beratOpts);
+  ['trxMerek','pmbMerek','imgMerek','trendMerek'].forEach(id=>{
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = merekOpts;
+    if(prev && [...el.options].some(o=>o.value===prev)) el.value = prev;
+  });
+  ['trxBerat','pmbBerat','trendBerat'].forEach(id=>{
+    const el = document.getElementById(id);
+    const prev = el.value;
+    el.innerHTML = beratOpts;
+    if(prev && [...el.options].some(o=>o.value===prev)) el.value = prev;
+    else if(id==='trendBerat'){ const oneGr = [...el.options].find(o=>o.value==='1'); if(oneGr) el.value='1'; }
+  });
 }
 
 function renderMaster(){
@@ -1087,7 +1119,7 @@ function renderStok(){
 
 /* ================= DASHBOARD ================= */
 function last7Dates(){
-  const arr=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); arr.push(d.toISOString().slice(0,10)); } return arr;
+  const arr=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); arr.push(localDateStr(d)); } return arr;
 }
 
 function renderDashboard(){
@@ -1174,6 +1206,69 @@ function drawLine(id, labels, data, color){
     options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}}, y:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}} } }
   });
 }
+function drawMultiLine(id, labels, series){
+  // series: [{ label, data, color }]
+  if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
+  const ctx = document.getElementById(id).getContext('2d');
+  if(charts[id]) charts[id].destroy();
+  charts[id] = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets: series.map(s=>({
+        label: s.label, data: s.data, borderColor: s.color, backgroundColor: s.color+'22',
+        fill:false, tension:.3, pointRadius:2.5, pointBackgroundColor:s.color, borderWidth:2
+      }))
+    },
+    options:{
+      plugins:{ legend:{ display:true, position:'top', labels:{color:'#cfd4ea', boxWidth:12, font:{size:11}} } },
+      scales:{
+        x:{ticks:{color:'#8b93b3', maxRotation:0, autoSkip:true}, grid:{color:'#1c2340'}},
+        y:{ticks:{color:'#8b93b3', callback:v=>'Rp '+(v/1000)+'k'}, grid:{color:'#1c2340'}}
+      }
+    }
+  });
+}
+function renderTrendChart(){
+  const merek = document.getElementById('trendMerek').value;
+  const berat = document.getElementById('trendBerat').value;
+  const rangeDays = Number(document.getElementById('trendRange').value || 30);
+  if(!merek || !berat){ return; }
+
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - rangeDays);
+  const cutoffStr = localDateStr(cutoff);
+
+  const rows = DB.harga
+    .filter(h => h.merek===merek && Number(h.berat_gr)===Number(berat) && (rangeDays>=9999 || h.tanggal >= cutoffStr))
+    .sort((a,b)=> a.tanggal < b.tanggal ? -1 : 1);
+
+  if(!rows.length){
+    const canvas = document.getElementById('chartTrenHarga');
+    if(charts['chartTrenHarga']) charts['chartTrenHarga'].destroy();
+    const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+    canvas.parentElement.querySelectorAll('.empty').forEach(e=>e.remove());
+    const msg = document.createElement('div');
+    msg.className = 'empty'; msg.style.paddingTop = '100px';
+    msg.textContent = `Belum ada histori harga untuk ${merek} ${berat}gr pada rentang ini`;
+    canvas.parentElement.appendChild(msg);
+    return;
+  }
+  canvas_clearEmpty();
+
+  drawMultiLine('chartTrenHarga', rows.map(r=>r.tanggal.slice(5)), [
+    { label:'Harga Beli (Buyback)', data: rows.map(r=>Number(r.harga_beli)), color:'#5b8def' },
+    { label:'Harga Jual', data: rows.map(r=>Number(r.harga_jual)), color:'#d4af37' }
+  ]);
+}
+function canvas_clearEmpty(){
+  document.querySelectorAll('#chartTrenHarga').forEach(c=>{
+    c.parentElement.querySelectorAll('.empty').forEach(e=>e.remove());
+  });
+}
+document.getElementById('trendMerek').addEventListener('change', renderTrendChart);
+document.getElementById('trendBerat').addEventListener('change', renderTrendChart);
+document.getElementById('trendRange').addEventListener('change', renderTrendChart);
+
 function drawDonut(id, labels, data, colors){
   if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
   const ctx = document.getElementById(id).getContext('2d');
