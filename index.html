@@ -233,7 +233,7 @@
     <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password"></div>
     <button class="btn" id="btnLogin" style="width:100%;margin-top:4px;">Masuk</button>
     <div id="loginMsg" style="margin-top:12px;font-size:13px;"></div>
-
+    
   </div>
 </div>
 
@@ -359,6 +359,24 @@
         <h3><span class="sw"></span>Dasar Beli & Dasar Jual (Produsen)</h3>
         <div class="chart-wrap" style="height:280px;"><canvas id="chartTrenDasar"></canvas></div>
       </div>
+    </div>
+    <div class="card">
+      <h3><span class="sw"></span>📊 Kenaikan / Penurunan Harga (vs Hari Sebelumnya)</h3>
+      <div class="grid cols-3" style="margin-bottom:12px;">
+        <div class="field"><label>Jenis Harga</label>
+          <select id="trendDeltaTipe">
+            <option value="jual" selected>Harga Jual</option>
+            <option value="beli">Harga Beli (Buyback)</option>
+            <option value="dasar_jual">Dasar Jual (Produsen)</option>
+            <option value="dasar_beli">Dasar Beli (Produsen)</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column:span 2; display:flex; align-items:end; gap:16px;">
+          <span class="pill" style="background:#123324;color:#5fd9a0;border-color:#1f5c3d;">■ Naik dari hari sebelumnya</span>
+          <span class="pill" style="background:#3a1620;color:#e2596b;border-color:#5c2733;">■ Turun dari hari sebelumnya</span>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chartTrenDelta"></canvas></div>
     </div>
   </section>
 
@@ -1346,6 +1364,39 @@ function drawLine(id, labels, data, color){
     options:{ plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}}, y:{ticks:{color:'#8b93b3'}, grid:{color:'#1c2340'}} } }
   });
 }
+
+// Plugin custom (tanpa library tambahan) — menulis angka selisih (+/-) di atas/bawah
+// tiap titik pada grafik garis, dibandingkan dengan titik sebelumnya.
+const deltaLabelPlugin = {
+  id: 'deltaLabels',
+  afterDatasetsDraw(chart){
+    if(chart.config.type !== 'line') return;
+    const {ctx} = chart;
+    const points = chart.data.labels ? chart.data.labels.length : 0;
+    if(points > 31) return; // terlalu padat, biarkan tooltip saja yang menampilkan detail
+    chart.data.datasets.forEach((dataset, dsIndex)=>{
+      const meta = chart.getDatasetMeta(dsIndex);
+      if(!meta || meta.hidden) return;
+      meta.data.forEach((point, index)=>{
+        if(index === 0) return;
+        const curr = dataset.data[index], prev = dataset.data[index-1];
+        if(curr==null || prev==null) return;
+        const delta = curr - prev;
+        if(delta === 0) return;
+        const naik = delta > 0;
+        const text = (naik?'▲':'▼') + Math.abs(delta).toLocaleString('id-ID');
+        ctx.save();
+        ctx.font = '700 9px Arial';
+        ctx.fillStyle = naik ? '#5fd9a0' : '#e2596b';
+        ctx.textAlign = 'center';
+        ctx.fillText(text, point.x, point.y - (naik ? 10 : -16));
+        ctx.restore();
+      });
+    });
+  }
+};
+if(typeof Chart !== 'undefined') Chart.register(deltaLabelPlugin);
+
 function drawMultiLine(id, labels, series){
   // series: [{ label, data, color, dashed? }]
   if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
@@ -1362,9 +1413,30 @@ function drawMultiLine(id, labels, series){
       }))
     },
     options:{
+      layout:{ padding:{ top:20, bottom:20 } },
       plugins:{ legend:{ display:true, position:'top', labels:{color:'#cfd4ea', boxWidth:12, font:{size:11}} } },
       scales:{
         x:{ticks:{color:'#8b93b3', maxRotation:0, autoSkip:true}, grid:{color:'#1c2340'}},
+        y:{ticks:{color:'#8b93b3', callback:v=>'Rp '+(v/1000)+'k'}, grid:{color:'#1c2340'}}
+      }
+    }
+  });
+}
+function drawBarDelta(id, labels, deltas){
+  if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
+  const ctx = document.getElementById(id).getContext('2d');
+  if(charts[id]) charts[id].destroy();
+  const colors = deltas.map(d => d>0 ? '#3fbf7f' : d<0 ? '#e2596b' : '#6b7290');
+  charts[id] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data: deltas, backgroundColor: colors, borderRadius: 3, maxBarThickness: 28 }] },
+    options:{
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label: ctx => (ctx.raw>0?'Naik Rp ':ctx.raw<0?'Turun Rp ':'Tetap Rp ') + Math.abs(ctx.raw).toLocaleString('id-ID') } }
+      },
+      scales:{
+        x:{ticks:{color:'#8b93b3', maxRotation:0, autoSkip:true}, grid:{display:false}},
         y:{ticks:{color:'#8b93b3', callback:v=>'Rp '+(v/1000)+'k'}, grid:{color:'#1c2340'}}
       }
     }
@@ -1384,7 +1456,7 @@ function renderTrendChart(){
     .sort((a,b)=> a.tanggal < b.tanggal ? -1 : 1);
 
   if(!rows.length){
-    ['chartTrenFinal','chartTrenDasar'].forEach(id=>{
+    ['chartTrenFinal','chartTrenDasar','chartTrenDelta'].forEach(id=>{
       const canvas = document.getElementById(id);
       if(charts[id]) charts[id].destroy();
       const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
@@ -1407,9 +1479,28 @@ function renderTrendChart(){
     { label:'Dasar Beli (Produsen)', data: rows.map(r=>Number(r.harga_dasar_beli||0)), color:'#7ba7ff' },
     { label:'Dasar Jual (Produsen)', data: rows.map(r=>Number(r.harga_dasar_jual||0)), color:'#f4d888' }
   ]);
+
+  // Grafik naik/turun berdasarkan selisih dengan hari sebelumnya
+  const deltaField = { jual:'harga_jual', beli:'harga_beli', dasar_jual:'harga_dasar_jual', dasar_beli:'harga_dasar_beli' }[document.getElementById('trendDeltaTipe').value];
+  const deltaRows = rows.slice(1).map((r,i)=>({
+    tanggal: r.tanggal.slice(5),
+    delta: Number(r[deltaField]||0) - Number(rows[i][deltaField]||0)
+  }));
+  if(!deltaRows.length){
+    const canvas = document.getElementById('chartTrenDelta');
+    if(charts['chartTrenDelta']) charts['chartTrenDelta'].destroy();
+    canvas.getContext('2d').clearRect(0,0,canvas.width,canvas.height);
+    canvas.parentElement.querySelectorAll('.empty').forEach(e=>e.remove());
+    const msg = document.createElement('div');
+    msg.className='empty'; msg.style.paddingTop='90px';
+    msg.textContent = 'Butuh minimal 2 hari data untuk menghitung selisih';
+    canvas.parentElement.appendChild(msg);
+  } else {
+    drawBarDelta('chartTrenDelta', deltaRows.map(r=>r.tanggal), deltaRows.map(r=>r.delta));
+  }
 }
 function canvas_clearEmpty(){
-  ['chartTrenFinal','chartTrenDasar'].forEach(id=>{
+  ['chartTrenFinal','chartTrenDasar','chartTrenDelta'].forEach(id=>{
     const c = document.getElementById(id);
     if(c) c.parentElement.querySelectorAll('.empty').forEach(e=>e.remove());
   });
@@ -1417,6 +1508,7 @@ function canvas_clearEmpty(){
 document.getElementById('trendMerek').addEventListener('change', renderTrendChart);
 document.getElementById('trendBerat').addEventListener('change', renderTrendChart);
 document.getElementById('trendRange').addEventListener('change', renderTrendChart);
+document.getElementById('trendDeltaTipe').addEventListener('change', renderTrendChart);
 
 function drawDonut(id, labels, data, colors){
   if(typeof Chart === 'undefined'){ chartUnavailable(id); return; }
